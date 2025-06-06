@@ -34,7 +34,15 @@ class Reseau{
             active = false;
         };
 
+        bool includes(std::string str){
+            return str == name || str == addr;
+        }
+
         friend std::ostream& operator<<(std::ostream& os, const Reseau& r);
+
+        bool operator==(const Reseau& reseau) const {
+            return addr == reseau.addr || name == reseau.name;
+        }
 };
 
 std::ostream& operator<<(std::ostream& os, const Reseau& r) {

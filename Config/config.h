@@ -4,6 +4,8 @@
 #include <string>
 #include <vector>
 #include <iostream>
+#include <sstream>
+#include <regex>
 
 
 class Config {
@@ -13,24 +15,55 @@ class Config {
         std::ofstream outFile;
         std::mutex mutex;
 
+        bool checkConfiguration(const std::string& text) const{
+            size_t pos = text.find(':');
+            if (pos == std::string::npos) return false;
+
+            std::string nom = text.substr(0, pos);
+            std::string adresse = text.substr(pos + 1);
+
+            // Vérifie la longueur et caractères du nom
+            if (nom.empty() || nom.length() > 8) return false;
+            for (char c : nom) {
+                if (!std::isalnum(c) && c != '_') return false;
+            }
+
+            // Vérifie le format général IPv4 avec regex
+            std::regex ipv4Regex(R"(^(\d{1,3}\.){3}\d{1,3}$)");
+            if (!std::regex_match(adresse, ipv4Regex)) return false;
+
+            // Vérifie que chaque octet est entre 0 et 255
+            std::istringstream ss(adresse);
+            std::string segment;
+            while (std::getline(ss, segment, '.')) {
+                int octet = std::stoi(segment);
+                if (octet < 0 || octet > 255) return false;
+            }
+
+            return true;
+        }
 
         void createConfiguration(const std::string& text) {
+            if(!checkConfiguration(text)){ 
+                std::cerr << "Mauvais format de configuration." << std::endl;
+                return;
+            }
+
+            if (text.find(':') != std::string::npos)
             std::lock_guard<std::mutex> lock(mutex);
             outFile.open(path, std::fstream::app);
 
             if (outFile) {
                 outFile << text << '\n';
-                outFile.close(); // Fermer après écriture (à toi de voir si tu veux le garder ouvert)
+                outFile.close();
             } else {
                 std::cerr << "Erreur lors de l'ajout du réseau." << std::endl;
             }
-
             std::cout << text << " a été ajouté." << std::endl;
         }
 
-        void deleteConfiguration(const std::string& text) {
+        void deleteConfiguration(const std::string& param) {
             std::lock_guard<std::mutex> lock(mutex);
-            const std::string path = "/etc/ospfallacieux/config";
 
             inFile.open(path);
             if (!inFile) {
@@ -38,33 +71,44 @@ class Config {
                 return;
             }
 
-            std::vector<std::string> lines;
-            std::string line;
-            bool parameterExist = true;
-            while (std::getline(inFile, line)) {
-                if (line.find(text) == std::string::npos){
-                    lines.push_back(line);
-                    parameterExist = false;
+            std::vector<std::string> lignes;
+            std::string ligne;
+            bool ligneSupprimee = false;
+
+            while (std::getline(inFile, ligne)) {
+                size_t pos = ligne.find(':');
+                if (pos != std::string::npos) {
+                    std::string nom = ligne.substr(0, pos);
+                    std::string adresse = ligne.substr(pos + 1);
+
+                    // Supprimer la ligne si le paramètre correspond au nom ou à l’adresse
+                    if (param == nom || param == adresse || param == ligne) {
+                        ligneSupprimee = true;
+                        continue; // ne pas ajouter cette ligne
+                    }
                 }
+
+                lignes.push_back(ligne);
             }
+
             inFile.close();
 
-            if(parameterExist){
-                std::cout << "Chef le parametre '" << text << "' que tu veux delete existe pas" << std::endl;
-                return;
+            if (ligneSupprimee) {
+                outFile.open(path, std::ios::trunc);
+                if (!outFile) {
+                    std::cerr << "Erreur lors de l'ouverture du fichier pour écriture." << std::endl;
+                    return;
+                }
+
+                for (const auto& l : lignes) {
+                    outFile << l << '\n';
+                }
+
+                outFile.close();
             }
-
-            outFile.open(path, std::ios::out | std::ios::trunc);
-            if (!outFile) {
-                std::cerr << "Erreur lors de l'ouverture du fichier pour écriture." << std::endl;
-                return;
+            else{
+                std::cerr << "La configuration recherchée n'existe pas." << std::endl;
             }
-
-            for (const auto& l : lines)
-                outFile << l << "\n";
-
-            outFile.close();
-            std::cout << text << " a été supprimé." << std::endl;
         }
 
         void showConfiguration() {
@@ -86,34 +130,24 @@ class Config {
             std::filesystem::path filePath(path);
             std::filesystem::path dirPath = filePath.parent_path();
 
-            if (!std::filesystem::exists(dirPath)) {
-                if (std::filesystem::create_directories(dirPath)) {
-                    std::cout << "Dossier de configuration créé : " << dirPath << std::endl;
-                } else {
-                    std::cerr << "Erreur lors de la création du dossier." << std::endl;
-                }
-            }
+            if (!std::filesystem::exists(dirPath) && !std::filesystem::create_directories(dirPath))
+                std::cerr << "Erreur lors de la création du dossier." << std::endl;
+            
 
             if (!std::filesystem::exists(filePath)) {
                 std::ofstream file(filePath);
-                if (file) {
+                if (file)
                     std::cout << "Fichier créé : " << filePath << std::endl;
-                } else {
+                else
                     std::cerr << "Erreur lors de la création du fichier." << std::endl;
-                }
-            } else {
-                std::cout << "Le fichier existe déjà." << std::endl;
             }
-            std::cout << std::endl;
         }
 
         ~Config() {
-            if (inFile.is_open()) {
+            if (inFile.is_open())
                 inFile.close();
-            }
-            if (outFile.is_open()) {
+            if (outFile.is_open())
                 outFile.close();
-            }
         }
 
         //commande possible

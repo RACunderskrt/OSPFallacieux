@@ -8,10 +8,13 @@
 
 using namespace std;
 
-int main(){
-    Router r1 = Router("R1");
-    Router r2 = Router("R2");
-    Router r3 = Router("R3");
+void test1(){
+    Router r1 = Router();
+    r1.setName("R1");
+    Router r2 = Router();
+    r2.setName("R2");
+    Router r3 = Router();
+    r3.setName("R3");
     Reseau l1 = Reseau("L1","0.0.0.0",15);
     Reseau l2 = Reseau("L2","1.1.1.1",20, false);
 
@@ -29,6 +32,10 @@ int main(){
     for (const auto& [nom, cout] : chemins) {
         std::cout << "Chemin vers " << nom << " : " << cout << std::endl;
     }
+}
 
+int main(){
+    Router r4 = Router("R4","/etc/ospfallacieux/config");
+    cout << r4 << endl;
     return 0;
 }

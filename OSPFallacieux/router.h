@@ -7,6 +7,8 @@
 #include <map>
 #include <set>
 #include <utility>
+#include <fstream>
+#include <mutex>
 
 class Router{
     private :
@@ -17,6 +19,29 @@ class Router{
 
         Router(): name(""){};
         Router(std::string name_): name(name_){};
+        Router(std::string name_, std::string path): name(name_){
+            std::mutex mutex;
+            std::lock_guard<std::mutex> lock(mutex);
+            std::string contenuDuFichier;
+            
+            std::ifstream inFile;
+            inFile.open(path, std::ios::in);
+
+            while (getline (inFile, contenuDuFichier)){
+                size_t pos = contenuDuFichier.find(':');
+                if (pos == std::string::npos) continue;
+                    
+                std::string ip = contenuDuFichier.substr(pos + 1);
+                std::string name = contenuDuFichier.substr(0, pos);
+
+                neighbors.push_back(std::make_tuple(Router(), Reseau(name, ip), ""));
+            }
+            inFile.close(); 
+        };
+
+        void setName(std::string name_){
+            name = name_;
+        };
 
         std::string getName() const{
             return name;
@@ -28,7 +53,7 @@ class Router{
 
         void addNeighbor(Router rout, Reseau res, std::string i_){
             neighbors.push_back(std::make_tuple(rout, res, i_));
-        }
+        };
 
         friend std::ostream& operator<<(std::ostream& os, const Router& router);   
 
@@ -69,7 +94,7 @@ class Router{
                     Reseau link = std::get<1>(neighborInfo);
                     std::string neighborName = neighbor.getName();
 
-                    if (!link.isActive()) continue; // ⚠️ Ne pas tenir compte si le réseau est désactivé
+                    if (!link.isActive()) continue;
 
                     float cost = link.getPoids();
 
@@ -81,7 +106,7 @@ class Router{
             }
 
             return distances;
-        }
+        };
 
 };
 

@@ -108,6 +108,63 @@ class Router{
             return distances;
         };
 
+        static std::vector<uint8_t> routers_to_binary(const std::vector<std::pair<std::string, std::vector<int>>>& data) {
+            std::vector<uint8_t> buffer;
+
+            auto append_int = [&](int32_t val) {
+                uint8_t* p = reinterpret_cast<uint8_t*>(&val);
+                buffer.insert(buffer.end(), p, p + sizeof(int32_t));
+            };
+
+            for (const auto& [str, vec] : data) {
+                // Ajoute string sur 8 octets (padded avec '\0')
+                std::string s = str.substr(0, 8);
+                s.resize(8, '\0');
+                buffer.insert(buffer.end(), s.begin(), s.end());
+
+                // Ajoute la taille du vector<int>
+                append_int(vec.size());
+
+                // Ajoute les int
+                for (int v : vec) {
+                    append_int(v);
+                }
+            }
+
+            return buffer;
+        };
+
+        static std::vector<std::pair<std::string, std::vector<int>>> from_binary_to_routers(const uint8_t* data, size_t size) {
+            std::vector<std::pair<std::string, std::vector<int>>> result;
+            size_t offset = 0;
+
+            auto read_int = [&]() -> int32_t {
+                int32_t val;
+                memcpy(&val, data + offset, sizeof(int32_t));
+                offset += sizeof(int32_t);
+                return val;
+            };
+
+            while (offset + 8 + sizeof(int32_t) <= size) {
+                std::string str(reinterpret_cast<const char*>(data + offset), 8);
+                str = str.c_str();
+                offset += 8;
+
+                int32_t vec_len = read_int();
+
+                if (offset + vec_len * sizeof(int32_t) > size) break;
+
+                std::vector<int> vec;
+                for (int i = 0; i < vec_len; ++i) {
+                    vec.push_back(read_int());
+                }
+
+                result.emplace_back(str, vec);
+            }
+
+            return result;
+        };
+
 };
 
 std::ostream& operator<<(std::ostream& os, const Router& router) {

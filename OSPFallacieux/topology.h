@@ -16,6 +16,10 @@ class Topology{
         Topology(){};
         Topology(std::vector<Router> topology_):topology(topology_){};
 
+        std::vector<Router> getTopology(){
+            return topology;
+        }
+
         std::vector<uint8_t> getReseauxSerialized(){
             return reseaux_serialized;
         };
@@ -61,7 +65,7 @@ class Topology{
             Router r3 = Router();
             r3.setName("R3");
             Reseau l1 = Reseau("L1","0.0.0.0",15);
-            Reseau l2 = Reseau("L2","1.1.1.1",20, false);
+            Reseau l2 = Reseau("L2","1.1.1.1",20);
 
             r1.addNeighbor(r2,l1,"0.0.0.1");
             r2.addNeighbor(r1,l1,"0.0.0.2");

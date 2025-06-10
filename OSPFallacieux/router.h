@@ -55,6 +55,14 @@ class Router{
             neighbors.push_back(std::make_tuple(rout, res, i_));
         };
 
+        std::string findInterface(std::string routerName){
+            for(auto voisin: neighbors){
+                if(std::get<0>(voisin).getName() == routerName)
+                    return std::get<2>(voisin);
+            }
+            return "";
+        }
+
         friend std::ostream& operator<<(std::ostream& os, const Router& router);   
 
         std::map<std::string, float> calculateShortestPaths(const std::vector<Router>& allRouters) {
@@ -107,6 +115,115 @@ class Router{
 
             return distances;
         };
+
+        std::map<std::string, float> calculateShortestPaths_2(const std::vector<Router>& allRouters, std::map<std::string, std::string>& interfaceMap) {
+            std::map<std::string, float> distances;
+            std::map<std::string, bool> visited;
+
+            for (const Router& r : allRouters) {
+                distances[r.getName()] = std::numeric_limits<float>::infinity();
+                visited[r.getName()] = false;
+            }
+
+            distances[this->name] = 0.0f;
+
+            auto cmp = [&distances](const std::string& left, const std::string& right) {
+                return distances[left] > distances[right];
+            };
+
+            std::priority_queue<std::string, std::vector<std::string>, decltype(cmp)> pq(cmp);
+            pq.push(this->name);
+
+            std::map<std::string, Router> nameToRouter;
+            for (const Router& r : allRouters) {
+                nameToRouter[r.getName()] = r;
+            }
+
+            while (!pq.empty()) {
+                std::string current = pq.top();
+                pq.pop();
+
+                if (visited[current]) continue;
+                visited[current] = true;
+
+                Router currentRouter = nameToRouter[current];
+
+                for (const auto& neighborInfo : currentRouter.getNeighbors()) {
+                    Router neighbor = std::get<0>(neighborInfo);
+                    Reseau link = std::get<1>(neighborInfo);
+                    std::string neighborName = neighbor.getName();
+
+                    if (!link.isActive()) continue;
+
+                    float cost = link.getPoids();
+
+                    if (distances[current] + cost < distances[neighborName]) {
+                        distances[neighborName] = distances[current] + cost;
+                        pq.push(neighborName);
+
+                        // Met à jour l'interface utilisée pour arriver à neighbor
+                        interfaceMap[neighborName] = std::get<2>(neighborInfo); // Enregistre l'interface
+                    }
+                }
+            }
+
+            return distances;
+        }
+
+        std::map<std::string, float> calculateShortestPaths_3(const std::vector<Router>& allRouters,std::map<std::string, std::string>& predecessorMap){
+            std::map<std::string, float> distances;
+            std::map<std::string, bool> visited;
+
+            for (const Router& r : allRouters) {
+                distances[r.getName()] = std::numeric_limits<float>::infinity();
+                visited[r.getName()] = false;
+            }
+
+            distances[this->name] = 0.0f;
+
+            auto cmp = [&distances](const std::string& left, const std::string& right) {
+                return distances[left] > distances[right];
+            };
+
+            std::priority_queue<std::string, std::vector<std::string>, decltype(cmp)> pq(cmp);
+            pq.push(this->name);
+
+            std::map<std::string, Router> nameToRouter;
+            for (const Router& r : allRouters) {
+                nameToRouter[r.getName()] = r;
+            }
+
+            while (!pq.empty()) {
+                std::string current = pq.top();
+                pq.pop();
+
+                if (visited[current]) continue;
+                visited[current] = true;
+
+                Router currentRouter = nameToRouter[current];
+
+                for (const auto& neighborInfo : currentRouter.getNeighbors()) {
+                    Router neighbor = std::get<0>(neighborInfo);
+                    Reseau link = std::get<1>(neighborInfo);
+                    std::string neighborName = neighbor.getName();
+
+                    if (!link.isActive()) continue;
+
+                    float cost = link.getPoids();
+
+                    if (distances[current] + cost < distances[neighborName]) {
+                        distances[neighborName] = distances[current] + cost;
+                        pq.push(neighborName);
+
+                        // Met à jour le prédécesseur du voisin
+                        predecessorMap[neighborName] = current;
+                    }
+                }
+            }
+
+            return distances;
+        }
+
 
         static std::vector<uint8_t> routers_to_binary(const std::vector<std::pair<std::string, std::vector<int>>>& data) {
             std::vector<uint8_t> buffer;

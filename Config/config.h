@@ -125,6 +125,14 @@ class Config {
             inFile.close(); 
         }
 
+        void startService(){
+            system("ls"); //mettre la commande pour lancer le service
+        }
+
+        void stopService(){
+            system("ls"); //mettre la commande pour stopper le service
+        }
+
     public:
         Config(){
             std::filesystem::path filePath(path);
@@ -159,8 +167,13 @@ class Config {
                 std::cout << "pas assez de param chef" << std::endl;
             else{
                 char option = argv[1][1];
+                std::string long_option = argv[1];
 
-                if(option == 's')
+                if(long_option == "start")
+                    return 4;
+                else if(long_option == "stop")
+                    return 5;
+                else if(option == 's')
                     return 1;
                 else if(option == 'c' && argc > 2)
                     return 2;
@@ -182,6 +195,12 @@ class Config {
                     break;
                 case 3:
                     deleteConfiguration(parameter);
+                    break;
+                case 4:
+                    startService();
+                    break;
+                case 5:
+                    stopService();
                     break;
                 default:   
                     std::cout << "t'es bourré josé" << std::endl;

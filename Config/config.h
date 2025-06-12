@@ -48,8 +48,6 @@ class Config {
                 std::cerr << "Mauvais format de configuration." << std::endl;
                 return;
             }
-
-            if (text.find(':') != std::string::npos)
             std::lock_guard<std::mutex> lock(mutex);
             outFile.open(path, std::fstream::app);
 
@@ -133,6 +131,51 @@ class Config {
             system("ls"); //mettre la commande pour stopper le service
         }
 
+        void setName(const std::string& param){
+            if(param.size() > 8){
+                std::cerr << "Le nom du router ne peut dépasser les 8 caracteres." << std::endl;
+                return;
+            }
+            std::lock_guard<std::mutex> lock(mutex);
+
+            inFile.open(path);
+            if (!inFile) {
+                std::cerr << "Erreur lors de l'ouverture du fichier pour lecture." << std::endl;
+                return;
+            }
+
+            std::vector<std::string> lignes;
+            std::string ligne;
+
+            while (std::getline(inFile, ligne)) {
+                size_t pos = ligne.find(':');
+                if (pos != std::string::npos) {
+                    std::string nom = ligne.substr(0, pos);
+
+                    // Supprimer la ligne si le paramètre correspond au nom ou à l’adresse
+                    if ('/' == nom[0]) {
+                        continue; // ne pas ajouter cette ligne
+                    }
+                }
+
+                lignes.push_back(ligne);
+            }
+
+            inFile.close();
+
+            outFile.open(path, std::ios::trunc);
+            if (!outFile) {
+                std::cerr << "Erreur lors de l'ouverture du fichier pour écriture." << std::endl;
+                return;
+            }
+            outFile << "/name:" << param << '\n';
+            for (const auto& l : lignes) {
+                outFile << l << '\n';
+            }
+            
+            outFile.close();
+        }
+
     public:
         Config(){
             std::filesystem::path filePath(path);
@@ -173,6 +216,8 @@ class Config {
                     return 4;
                 else if(long_option == "stop")
                     return 5;
+                else if(long_option == "name")
+                    return 6;
                 else if(option == 's')
                     return 1;
                 else if(option == 'c' && argc > 2)
@@ -201,6 +246,9 @@ class Config {
                     break;
                 case 5:
                     stopService();
+                    break;
+                case 6:
+                    setName(parameter);
                     break;
                 default:   
                     std::cout << "t'es bourré josé" << std::endl;

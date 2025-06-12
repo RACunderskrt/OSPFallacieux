@@ -12,7 +12,7 @@
 using namespace std;
 
 void test2(){
-    Router r4 = Router("R4","/etc/ospfallacieux/config");   
+    Router r4 = Router("/etc/ospfallacieux/config");   
     cout << r4 << endl;
     Topology topo;
     topo.add(r4);
@@ -23,7 +23,7 @@ void test3(){
 }
 
 void test5(){
-    Router r4 = Router("R4","/etc/ospfallacieux/config");
+    Router r4 = Router("/etc/ospfallacieux/config");
     Topology topo2;
     topo2.add(r4);
 
@@ -87,6 +87,6 @@ void test7(){
 
 
 int main(){
-    test7();
+    test2();
     return 0;
 }

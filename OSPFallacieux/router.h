@@ -47,6 +47,35 @@ class Router{
                 name = "R1";
             }
         };
+        Router(std::string name_, std::string path){
+            std::mutex mutex;
+            std::lock_guard<std::mutex> lock(mutex);
+            std::string contenuDuFichier;
+            
+            std::ifstream inFile;
+            inFile.open(path, std::ios::in);
+
+            while (getline (inFile, contenuDuFichier)){
+                size_t pos = contenuDuFichier.find(':');
+                if (pos == std::string::npos) continue;
+                    
+                std::string before = contenuDuFichier.substr(0, pos); //la donnée est coupée en 2 par un ':'
+                std::string after = contenuDuFichier.substr(pos + 1);
+                
+                if(before == "/name"){
+                    name = after;
+                    continue;
+                }
+                else
+                    neighbors.push_back(std::make_tuple(Router(), Reseau(before, after), ""));
+            }
+            inFile.close(); 
+
+            if(!name.size()){
+                std::cerr << "Le router n'est pas nommé, cela peut poser des problèmes." << std::endl;
+                name = name_;
+            }
+        };
 
         void setName(std::string name_){
             name = name_;

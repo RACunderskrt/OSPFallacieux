@@ -63,18 +63,12 @@ class Reseau{
             active = false;
         };
 
-        bool includes(std::string str){
+        bool includes(std::string str){ //check si la string passé en param est le nom ou l'adresse du réseau
             return str == name || str == addr;
         };
 
-        friend std::ostream& operator<<(std::ostream& os, const Reseau& r);
-
-        bool operator==(const Reseau& reseau) const {
-            return addr == reseau.addr || name == reseau.name;
-        };
-
-        static std::vector<Reseau> from_binary_to_reseaux(const uint8_t* data, size_t size) {
-            constexpr size_t RESEAU_SIZE = 17;
+        static std::vector<Reseau> from_binary_to_reseaux(const uint8_t* data, size_t size) { //serialize le reseau en tableau binaire
+            constexpr size_t RESEAU_SIZE = 17; //ça doit être des paquets de 17, si c'est pas le cas le fonction quitte
             if (size % RESEAU_SIZE != 0)
                 throw std::runtime_error("Données corrompues ou incomplètes");
 
@@ -85,21 +79,21 @@ class Reseau{
             for (size_t i = 0; i < count; ++i) {
                 Reseau r;
 
-                r.name = std::string(reinterpret_cast<const char*>(data + offset), 8);
+                r.name = std::string(reinterpret_cast<const char*>(data + offset), 8); //récupere le nom du reseau
                 r.name = r.name.c_str();
                 offset += 8;
 
                 uint8_t ip[4];
                 memcpy(ip, data + offset, 4);
                 std::string test = ip_to_string(ip);
-                r.setAddr(test);
+                r.setAddr(test); //son ip
 
                 offset += 4;
 
-                memcpy(&r.poids, data + offset, sizeof(float));
+                memcpy(&r.poids, data + offset, sizeof(float)); //son poids
                 offset += 4;
 
-                r.active = static_cast<bool>(data[offset]);
+                r.active = static_cast<bool>(data[offset]); //si il est actif
                 offset += 1;
 
                 reseaux.push_back(r);
@@ -108,11 +102,11 @@ class Reseau{
             return reseaux;
         };
 
-        static std::vector<uint8_t> reseaux_to_binary(const std::vector<Reseau>& reseaux) {
+        static std::vector<uint8_t> reseaux_to_binary(const std::vector<Reseau>& reseaux) { //deserialize un tableau binaire en router
             std::vector<uint8_t> data;
 
-            for (const auto& r : reseaux) {
-                for (size_t i = 0; i < 8; ++i) {
+            for (const auto& r : reseaux) { 
+                for (size_t i = 0; i < 8; ++i) { //on récupere le nom de chaque reseau, comblé par des /0 pour atteindre les 8 char.
                     if (i < r.name.size()) {
                         data.push_back(static_cast<uint8_t>(r.name[i]));
                     } else {
@@ -124,17 +118,21 @@ class Reseau{
                     data.push_back(r.addr[i]);
                 }
 
-                uint8_t poidsBytes[4];
+                uint8_t poidsBytes[4]; //ajoute le poids en tant que uint8_t
                 std::memcpy(poidsBytes, &r.poids, sizeof(float));
                 data.insert(data.end(), poidsBytes, poidsBytes + 4);
 
-                data.push_back(static_cast<uint8_t>(r.active ? 1 : 0));
+                data.push_back(static_cast<uint8_t>(r.active ? 1 : 0)); //ajoute si la route est active ou non
             }
 
             return data;
         }
 
+        friend std::ostream& operator<<(std::ostream& os, const Reseau& r); //surcharge de l'opérateur <<  pour print l'objet
 
+        bool operator==(const Reseau& reseau) const { //surcharge de l'opérateur == pour pouvoir utiliser certaines fonctions tel que std::find
+            return addr == reseau.addr || name == reseau.name;
+        };
 };
 
 std::ostream& operator<<(std::ostream& os, const Reseau& r) {

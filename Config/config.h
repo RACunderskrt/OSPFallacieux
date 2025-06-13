@@ -201,10 +201,13 @@ class Config {
                 outFile.close();
         }
 
-        //commande possible
+        //commandes possibles
         //config -s
-        //config -c <ip>
-        //config -d <ip>
+        //config -c <name>:<ip>
+        //config -d <ip> || <name>
+        //config start
+        //config stop
+        //config name <name>
         static int checkParameters(int argc, char** argv){
             if(argc < 2)
                 std::cout << "pas assez de param chef" << std::endl;

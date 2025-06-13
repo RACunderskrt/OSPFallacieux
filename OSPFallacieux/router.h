@@ -15,7 +15,7 @@ class Router{
         std::string name;
         std::vector<std::tuple<Router,Reseau, std::string>> neighbors;
 
-        void loadConfigurationFile(std::string name_ = "R1"){
+        void loadConfigurationFile(std::string path, std::string name_ = "R1"){
             std::mutex mutex;
             std::lock_guard<std::mutex> lock(mutex);
             std::string contenuDuFichier;
@@ -49,62 +49,13 @@ class Router{
 
         Router(): name(""){};
         Router(std::string path){
-            std::mutex mutex;
-            std::lock_guard<std::mutex> lock(mutex);
-            std::string contenuDuFichier;
-            
-            std::ifstream inFile;
-            inFile.open(path, std::ios::in);
-
-            while (getline (inFile, contenuDuFichier)){
-                size_t pos = contenuDuFichier.find(':');
-                if (pos == std::string::npos) continue;
-                    
-                std::string before = contenuDuFichier.substr(0, pos); //la donnée est coupée en 2 par un ':'
-                std::string after = contenuDuFichier.substr(pos + 1);
-                
-                if(before == "/name"){
-                    name = after;
-                    continue;
-                }
-                else
-                    neighbors.push_back(std::make_tuple(Router(), Reseau(before, after), ""));
-            }
-            inFile.close(); 
-
-            if(!name.size()){
-                std::cerr << "Le router n'est pas nommé, cela peut poser des problèmes." << std::endl;
-                name = "R1";
-            }
+            loadConfigurationFile(path);
         };
-        Router(std::string name_, std::string path){
-            std::mutex mutex;
-            std::lock_guard<std::mutex> lock(mutex);
-            std::string contenuDuFichier;
-            
-            std::ifstream inFile;
-            inFile.open(path, std::ios::in);
-
-            while (getline (inFile, contenuDuFichier)){
-                size_t pos = contenuDuFichier.find(':');
-                if (pos == std::string::npos) continue;
-                    
-                std::string before = contenuDuFichier.substr(0, pos); //la donnée est coupée en 2 par un ':'
-                std::string after = contenuDuFichier.substr(pos + 1);
-                
-                if(before == "/name"){
-                    name = after;
-                    continue;
-                }
-                else
-                    neighbors.push_back(std::make_tuple(Router(), Reseau(before, after), ""));
-            }
-            inFile.close(); 
-
-            if(!name.size()){
-                std::cerr << "Le router n'est pas nommé, cela peut poser des problèmes." << std::endl;
+        Router(std::string path, std::string name_){
+            if(!path.size())
+                loadConfigurationFile(path, name_);
+            else
                 name = name_;
-            }
         };
 
         void setName(std::string name_){
@@ -123,122 +74,15 @@ class Router{
             neighbors.push_back(std::make_tuple(rout, res, i_));
         };
 
-        std::string findInterface(std::string routerName){
+        std::string findInterface(std::string routerName){ //grâce au nom du router cible, on retrouve l'interface necessaire au routage
             for(auto voisin: neighbors){
-                if(std::get<0>(voisin).getName() == routerName)
+                if(std::get<0>(voisin).getName() == routerName) //pour obtenir un objet d'un tuple c'est std::get<i> avec i l'index dans le tuple de l'objet
                     return std::get<2>(voisin);
             }
             return "";
-        }
-
-        friend std::ostream& operator<<(std::ostream& os, const Router& router);   
-
-        std::map<std::string, float> calculateShortestPaths(const std::vector<Router>& allRouters) {
-            std::map<std::string, float> distances;
-            std::map<std::string, bool> visited;
-
-            for (const Router& r : allRouters) {
-                distances[r.getName()] = std::numeric_limits<float>::infinity();
-                visited[r.getName()] = false;
-            }
-
-            distances[this->name] = 0.0f;
-
-            auto cmp = [&distances](const std::string& left, const std::string& right) {
-                return distances[left] > distances[right];
-            };
-
-            std::priority_queue<std::string, std::vector<std::string>, decltype(cmp)> pq(cmp);
-            pq.push(this->name);
-
-            std::map<std::string, Router> nameToRouter;
-            for (const Router& r : allRouters) {
-                nameToRouter[r.getName()] = r;
-            }
-
-            while (!pq.empty()) {
-                std::string current = pq.top();
-                pq.pop();
-
-                if (visited[current]) continue;
-                visited[current] = true;
-
-                Router currentRouter = nameToRouter[current];
-
-                for (const auto& neighborInfo : currentRouter.getNeighbors()) {
-                    Router neighbor = std::get<0>(neighborInfo);
-                    Reseau link = std::get<1>(neighborInfo);
-                    std::string neighborName = neighbor.getName();
-
-                    if (!link.isActive()) continue;
-
-                    float cost = link.getPoids();
-
-                    if (distances[current] + cost < distances[neighborName]) {
-                        distances[neighborName] = distances[current] + cost;
-                        pq.push(neighborName);
-                    }
-                }
-            }
-
-            return distances;
         };
 
-        std::map<std::string, float> calculateShortestPaths_2(const std::vector<Router>& allRouters, std::map<std::string, std::string>& interfaceMap) {
-            std::map<std::string, float> distances;
-            std::map<std::string, bool> visited;
-
-            for (const Router& r : allRouters) {
-                distances[r.getName()] = std::numeric_limits<float>::infinity();
-                visited[r.getName()] = false;
-            }
-
-            distances[this->name] = 0.0f;
-
-            auto cmp = [&distances](const std::string& left, const std::string& right) {
-                return distances[left] > distances[right];
-            };
-
-            std::priority_queue<std::string, std::vector<std::string>, decltype(cmp)> pq(cmp);
-            pq.push(this->name);
-
-            std::map<std::string, Router> nameToRouter;
-            for (const Router& r : allRouters) {
-                nameToRouter[r.getName()] = r;
-            }
-
-            while (!pq.empty()) {
-                std::string current = pq.top();
-                pq.pop();
-
-                if (visited[current]) continue;
-                visited[current] = true;
-
-                Router currentRouter = nameToRouter[current];
-
-                for (const auto& neighborInfo : currentRouter.getNeighbors()) {
-                    Router neighbor = std::get<0>(neighborInfo);
-                    Reseau link = std::get<1>(neighborInfo);
-                    std::string neighborName = neighbor.getName();
-
-                    if (!link.isActive()) continue;
-
-                    float cost = link.getPoids();
-
-                    if (distances[current] + cost < distances[neighborName]) {
-                        distances[neighborName] = distances[current] + cost;
-                        pq.push(neighborName);
-
-                        // Met à jour l'interface utilisée pour arriver à neighbor
-                        interfaceMap[neighborName] = std::get<2>(neighborInfo); // Enregistre l'interface
-                    }
-                }
-            }
-
-            return distances;
-        }
-
-        std::map<std::string, float> calculateShortestPaths_3(const std::vector<Router>& allRouters,std::map<std::string, std::string>& predecessorMap){
+        std::map<std::string, float> calculateShortestPaths(const std::vector<Router>& allRouters,std::map<std::string, std::string>& predecessorMap){  //calcul le chemin le plus court et redonne le chemin
             std::map<std::string, float> distances;
             std::map<std::string, bool> visited;
 
@@ -290,40 +134,35 @@ class Router{
             }
 
             return distances;
-        }
+        };
 
-
-        static std::vector<uint8_t> routers_to_binary(const std::vector<std::pair<std::string, std::vector<int>>>& data) {
+        static std::vector<uint8_t> routers_to_binary(const std::vector<std::pair<std::string, std::vector<int>>>& data) { //serialize le router en tableau binaire
             std::vector<uint8_t> buffer;
 
-            auto append_int = [&](int32_t val) {
+            auto append_int = [&](int32_t val) { //transforme un int en uint_8
                 uint8_t* p = reinterpret_cast<uint8_t*>(&val);
                 buffer.insert(buffer.end(), p, p + sizeof(int32_t));
             };
 
             for (const auto& [str, vec] : data) {
-                // Ajoute string sur 8 octets (padded avec '\0')
-                std::string s = str.substr(0, 8);
+                std::string s = str.substr(0, 8); // Ajoute string sur 8 octets (padded avec '\0')
                 s.resize(8, '\0');
                 buffer.insert(buffer.end(), s.begin(), s.end());
 
-                // Ajoute la taille du vector<int>
-                append_int(vec.size());
+                append_int(vec.size()); // Ajoute la taille du vector<int>
 
-                // Ajoute les int
-                for (int v : vec) {
+                for (int v : vec) //on ajoute les indexs des reseaux
                     append_int(v);
-                }
             }
 
             return buffer;
         };
 
-        static std::vector<std::pair<std::string, std::vector<int>>> from_binary_to_routers(const uint8_t* data, size_t size) {
+        static std::vector<std::pair<std::string, std::vector<int>>> from_binary_to_routers(const uint8_t* data, size_t size) { //deserialize un tableau binaire en router
             std::vector<std::pair<std::string, std::vector<int>>> result;
             size_t offset = 0;
 
-            auto read_int = [&]() -> int32_t {
+            auto read_int = [&]() -> int32_t { //transforme plusieurs uint8_t en int
                 int32_t val;
                 memcpy(&val, data + offset, sizeof(int32_t));
                 offset += sizeof(int32_t);
@@ -331,11 +170,11 @@ class Router{
             };
 
             while (offset + 8 + sizeof(int32_t) <= size) {
-                std::string str(reinterpret_cast<const char*>(data + offset), 8);
+                std::string str(reinterpret_cast<const char*>(data + offset), 8); //récupere les 8 octets du nom
                 str = str.c_str();
                 offset += 8;
 
-                int32_t vec_len = read_int();
+                int32_t vec_len = read_int(); //récupere le nombre de reseau disponible
 
                 if (offset + vec_len * sizeof(int32_t) > size) break;
 
@@ -349,6 +188,8 @@ class Router{
 
             return result;
         };
+
+        friend std::ostream& operator<<(std::ostream& os, const Router& router); //surcharge de l'opérateur <<  pour print l'objet
 
 };
 

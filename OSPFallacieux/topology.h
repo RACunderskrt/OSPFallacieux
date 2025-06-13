@@ -9,8 +9,6 @@
 class Topology{
     private:
         std::vector<Router> topology;
-        std::vector<uint8_t> routers_serialized;
-        std::vector<uint8_t> reseaux_serialized;
     
     public:
         Topology(){};
@@ -20,14 +18,6 @@ class Topology{
             return topology;
         }
 
-        std::vector<uint8_t> getReseauxSerialized(){
-            return reseaux_serialized;
-        };
-
-        std::vector<uint8_t> getRoutersSerialized(){
-            return routers_serialized;
-        };
-
         size_t size(){
             return topology.size();
         }
@@ -36,7 +26,7 @@ class Topology{
             topology.push_back(router);
         };
 
-        void from_serialized(std::vector<uint8_t> routers, std::vector<uint8_t> reseaux){
+        void from_serialized(std::vector<uint8_t> routers, std::vector<uint8_t> reseaux){ //transforme les 2 vector<uint8_t> en une topology
             std::vector<Reseau> reseaux_deserialized = Reseau::from_binary_to_reseaux(reseaux.data(), reseaux.size());
             std::vector<std::pair<std::string,std::vector<int>>> routers_deserialized = Router::from_binary_to_routers(routers.data(), routers.size());
 
@@ -47,7 +37,7 @@ class Topology{
                         isIn = true;
                 }
                 if(!isIn){
-                    Router newRouter = Router(std::get<0>(routers_deserialized[i]));
+                    Router newRouter = Router("",std::get<0>(routers_deserialized[i]));
                     for(auto res_id : std::get<1>(routers_deserialized[i])){
                         newRouter.addNeighbor(Router(),reseaux_deserialized[res_id],"");
                     }
@@ -57,7 +47,7 @@ class Topology{
             }
         }
 
-        void init_test(){
+        void init_test(){ //créer une topology de base pour les tests
             Router r1 = Router();
             r1.setName("R1");
             Router r2 = Router();
@@ -74,10 +64,10 @@ class Topology{
             topology = {r1, r2, r3};
         };
 
-        void normalize() {
+        void normalize(std::vector<uint8_t>& routers_serialized, std::vector<uint8_t>& reseaux_serialized) { //stocke la topology normalisé+serialisé dans 2 vector<uint8_t> passé en parametre
             std::vector<Reseau> reseaux;
 
-            for(auto router : topology){
+            for(auto router : topology){ //on garde chaque reseau dans un vector
                 for(auto voisin : router.getNeighbors()){
                     Reseau buffer = std::get<1>(voisin);
                     bool isInVector = false;
@@ -91,11 +81,11 @@ class Topology{
                 }
             }
 
-            reseaux_serialized = Reseau::reseaux_to_binary(reseaux);
+            reseaux_serialized = Reseau::reseaux_to_binary(reseaux); //on le serialise
 
             std::vector<std::pair<std::string,std::vector<int>>> routers;
 
-            for (const auto& router : topology) {
+            for (const auto& router : topology) { //on garde chaque router avec l'index des reseaus dans le vector precedent
                 std::vector<int> reseau_ids;
                 for (const auto& voisin : router.getNeighbors()) {
                     Reseau buffer = std::get<1>(voisin);
@@ -108,10 +98,10 @@ class Topology{
                 routers.push_back(std::make_pair(router.getName(), reseau_ids));
             }
 
-            routers_serialized = Router::routers_to_binary(routers);
+            routers_serialized = Router::routers_to_binary(routers); //on le serialise
         };
 
-        friend std::ostream& operator<<(std::ostream& os, const Topology& r);
+        friend std::ostream& operator<<(std::ostream& os, const Topology& r); //surcharge de l'opérateur <<  pour print l'objet
 };
 
 std::ostream& operator<<(std::ostream& os, const Topology& r) {

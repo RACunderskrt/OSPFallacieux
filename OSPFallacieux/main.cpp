@@ -30,31 +30,14 @@ void test5(){
     Topology topo;
     topo.init_test();
     cout << "topo avant : \n" << topo << endl;
-    topo2.normalize();
-    topo.from_serialized(topo2.getRoutersSerialized(), topo2.getReseauxSerialized());
+
+    std::vector<uint8_t> res, rout;
+    topo.normalize(rout, res);
+    topo.from_serialized(rout, res);
     cout << "==============================" << endl;
     cout << "topo apres : \n" << topo << endl;
 }
 
-void test6(){
-    Topology topo;
-    topo.init_test();
-    cout << "topo avant : \n" << topo << endl;
-    auto topo_oui = topo.getTopology();
-    std::map<std::string, std::string> interfaceMap;
-    std::map<std::string, float> shortestPaths = topo_oui[0].calculateShortestPaths_2(topo_oui, interfaceMap);
-    // Afficher les distances
-    std::cout << "Distances:" << std::endl;
-    for (const auto& entry : shortestPaths) {
-        std::cout << "Node: " << entry.first << " -> Distance: " << entry.second << std::endl;
-    }
-
-    // Afficher les interfaces
-    std::cout << "\nInterfaces:" << std::endl;
-    for (const auto& entry : interfaceMap) {
-        std::cout << "Node: " << entry.first << " -> Interface: " << entry.second << std::endl;
-    }
-}
 
 string printPath(const std::string& targetNode, const std::map<std::string, std::string>& predecessorMap) {
     std::vector<std::string> path;
@@ -75,7 +58,7 @@ void test7(){
     cout << "topo avant : \n" << topo << endl;
     auto topo_oui = topo.getTopology();
     std::map<std::string, std::string> predecessorMap;
-    std::map<std::string, float> shortestPaths = topo_oui[0].calculateShortestPaths_3(topo_oui, predecessorMap);
+    std::map<std::string, float> shortestPaths = topo_oui[0].calculateShortestPaths(topo_oui, predecessorMap);
 
     // Supposons que nous voulons afficher le chemin de "NodeA" à "NodeB"
     cout << printPath("R3", predecessorMap) << endl;
@@ -87,6 +70,6 @@ void test7(){
 
 
 int main(){
-    test2();
+    test5();
     return 0;
 }

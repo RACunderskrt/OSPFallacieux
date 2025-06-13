@@ -26,6 +26,17 @@ class Topology{
             topology.push_back(router);
         };
 
+        void add(std::vector<Router> routers){
+            for(auto& t: topology){
+                for(auto& r: routers){ //si le router existe deja dans la topology, il est mis a jour
+                    if(r.getName() == i.getName)
+                        t = r;
+                    else
+                        topology.push_back(r); //sinon, il est ajouté a la topology
+                }
+            }
+        };
+
         void from_serialized(std::vector<uint8_t> routers, std::vector<uint8_t> reseaux){ //transforme les 2 vector<uint8_t> en une topology
             std::vector<Reseau> reseaux_deserialized = Reseau::from_binary_to_reseaux(reseaux.data(), reseaux.size());
             std::vector<std::pair<std::string,std::vector<int>>> routers_deserialized = Router::from_binary_to_routers(routers.data(), routers.size());

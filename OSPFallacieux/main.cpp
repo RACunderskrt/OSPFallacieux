@@ -87,6 +87,6 @@ void test7(){
 
 
 int main(){
-    test2();
+    test7();
     return 0;
 }

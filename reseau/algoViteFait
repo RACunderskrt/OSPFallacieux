@@ -1,0 +1,24 @@
+lancement du service
+si il n'y a pas de fichier de config, ça sort.
+on charge le fichier de config
+on créer une topology
+on ajoute le router de la config
+
+on lance les "hello" sur les reseaux décrit dans la config avec des threads (un par connexion)
+dans le thread hello :
+	on attend sa réponse
+	avec sa réponse on met a jour l'adresse lié à au réseau
+	fin du thread
+
+on a la topology autour du router actuel (celui dans lequel on se trouve, j'sais pas comment mieux le dire)
+on lance un thread par communication :
+	on envoi notre topology
+	on ecoute si une topology arrive
+	et ce toute les 10sec
+
+si on recoit une nouvelle topology:
+	on ajoute le router a notre topology
+	on recalcule les chemins
+	on met a jour la table de routage avec une lib
+
+et on recommence tous ça

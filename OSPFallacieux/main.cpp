@@ -51,8 +51,7 @@ void test7(){
 
     // Supposons que nous voulons afficher le chemin de "NodeA" à "NodeB"
     //cout << printPath("R3", predecessorMap) << endl;
-    cout << topo.find_interface("R3", predecessorMap) << endl;
-    
+    cout << topo.find_interface("R3", predecessorMap) << endl; 
 }
 
 

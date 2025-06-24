@@ -1,0 +1,6 @@
+Hello en tant que thread pour chaque interface
+-SI HELLO par reçu depuis 5 secondes, alors interface down, donc retirer de la topologie.
+-SI HELLO reçu, alors interface up, ajouter à la topologie.
+
+Faire passer la topologie de chaque routeur toute les 10s
+modifier la table de routage en conséquence.

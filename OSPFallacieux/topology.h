@@ -4,6 +4,7 @@
 #include <vector>
 #include <cstdint>
 #include <stdexcept>
+#include <algorithm>
 #include <arpa/inet.h> 
 
 class Topology{
@@ -29,7 +30,7 @@ class Topology{
         void add(std::vector<Router> routers){
             for(auto& t: topology){
                 for(auto& r: routers){ //si le router existe deja dans la topology, il est mis a jour
-                    if(r.getName() == i.getName)
+                    if(r.getName() == t.getName())
                         t = r;
                     else
                         topology.push_back(r); //sinon, il est ajouté a la topology
@@ -111,6 +112,10 @@ class Topology{
 
             routers_serialized = Router::routers_to_binary(routers); //on le serialise
         };
+
+        void dijkstra(std::map<std::string, std::string> &predecessorMap, std::map<std::string, float> &shortestPaths){
+            shortestPaths = topology[0].calculateShortestPaths(topology, predecessorMap);
+        }
 
         friend std::ostream& operator<<(std::ostream& os, const Topology& r); //surcharge de l'opérateur <<  pour print l'objet
 };

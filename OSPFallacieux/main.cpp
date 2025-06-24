@@ -61,6 +61,8 @@ void test7(){
     std::map<std::string, float> shortestPaths = topo_oui[0].calculateShortestPaths(topo_oui, predecessorMap);
 
     // Supposons que nous voulons afficher le chemin de "NodeA" à "NodeB"
+    cout << "========================= \n" << endl;
+    cout << "topo après : \n" << topo << endl;
     cout << printPath("R3", predecessorMap) << endl;
     cout << topo_oui[0].findInterface(printPath("R3", predecessorMap)) << endl;
     
@@ -70,6 +72,6 @@ void test7(){
 
 
 int main(){
-    test5();
+    test7();
     return 0;
 }

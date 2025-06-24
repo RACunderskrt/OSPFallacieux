@@ -21,6 +21,10 @@
 #include "OSPFallacieux/topology.h"
 #include "OSPFallacieux/log.h"
 
+#pragma region Fonctions
+/*
+Récupère l'adresse IP local sur une interface
+*/
 std::string getLocalIPAddress(const std::string& interface = "eth0") {
     int fd = socket(AF_INET, SOCK_DGRAM, 0);
     if (fd < 0) return "";
@@ -38,7 +42,10 @@ std::string getLocalIPAddress(const std::string& interface = "eth0") {
     return std::string(inet_ntoa(ipaddr->sin_addr));
 }
 
-int add_static_route(const std::string& destination, const std::string& gateway, const std::string& netmask) {
+/*
+Permet d'ajouter une route statique
+*/
+int addStaticRoute(const std::string& destination, const std::string& gateway, const std::string& netmask) {
     int sockfd = socket(AF_INET, SOCK_DGRAM, 0);
     if (sockfd < 0) {
         perror("socket");
@@ -59,7 +66,7 @@ int add_static_route(const std::string& destination, const std::string& gateway,
     addr = (struct sockaddr_in*)&route.rt_gateway;
     addr->sin_family = AF_INET;
     inet_pton(AF_INET, gateway.c_str(), &addr->sin_addr);
-
+    
     // Netmask
     addr = (struct sockaddr_in*)&route.rt_genmask;
     addr->sin_family = AF_INET;
@@ -78,6 +85,24 @@ int add_static_route(const std::string& destination, const std::string& gateway,
     return 0;
 }
 
+/*
+Met à jour la table de routage
+*/
+int updateRoutingTable(Topology topo){
+    //Parcours de la topology pour récupérer les réseaux
+    std::map<std::string, std::string> predecessorMap;
+    std::map<std::string, float> shortestPaths = topo.getTopology()[0].calculateShortestPaths(topo.getTopology(), predecessorMap);
+
+    for(Router routeur : topo.getTopology()){
+        topo.getTopology()[0].findInterface(printPath);
+    }
+
+    return 0;
+}
+
+/*
+Récupère l'heure/minute/seconde actuelle
+*/
 std::string getCurrentTimestamp() {
     std::time_t now = std::time(nullptr);
     char buf[100];
@@ -85,6 +110,9 @@ std::string getCurrentTimestamp() {
     return std::string(buf);
 }
 
+/*
+Écrit un message dans un fichier de LOG pour le server
+*/
 void logMessageServer(const std::string &message, const std::string logFile = "/home/etudiant/helloOSPF/log/server_logT.txt") {
     std::ofstream logfile(logFile, std::ios_base::app);
     if (logfile.is_open()) {
@@ -92,6 +120,9 @@ void logMessageServer(const std::string &message, const std::string logFile = "/
     }
 }
 
+/*
+Écrit un message dans un fichier de LOG pour le client
+*/
 void logMessageClient(const std::string &message, const std::string logFile = "/home/etudiant/helloOSPF/log/client_logT.txt") {
     std::ofstream logfile(logFile, std::ios_base::app);
     if (logfile.is_open()) {
@@ -99,30 +130,36 @@ void logMessageClient(const std::string &message, const std::string logFile = "/
     }
 }
 
-std::vector<std::string> getBroadcastAddresses(const std::string &filename) {
-    std::ifstream infile(filename);
-    std::string line;
-    std::vector<std::string> broadcastAddresses;
+/*
+Récupère les addresses contenu dans un fichier et les modifie en addresse de Broadcast
+*/
+std::string getBroadcastAdresse(const std::string& ip) {
+    std::stringstream ss(ip);
+    std::string segment;
+    std::vector<std::string> octets;
 
-    while (std::getline(infile, line)) {
-        std::istringstream iss(line);
-        std::string key, ip;
-        if (std::getline(iss, key, ':') && std::getline(iss, ip)) {
-            struct in_addr addr;
-            if (inet_aton(ip.c_str(), &addr)) {
-                unsigned long net = ntohl(addr.s_addr);
-                net |= 0x000000FF; // broadcast /24
-                addr.s_addr = htonl(net);
-                broadcastAddresses.push_back(inet_ntoa(addr));
-            }
-        }
+    // Découper l'adresse IP en 4 octets
+    while (std::getline(ss, segment, '.')) {
+        octets.push_back(segment);
     }
 
-    return broadcastAddresses;
-}
+    // Vérifier qu'on a bien 4 octets
+    if (octets.size() != 4) {
+        return "Adresse IP invalide";
+    }
 
+    // Remplacer le dernier octet par 255 (broadcast pour /24)
+    return octets[0] + "." + octets[1] + "." + octets[2] + ".255";
+}
+#pragma endregion Fonctions
+
+#pragma region SERVEUR_CLIENT
+/*
+Fonction pour le SERVEUR
+*/
 void server(){
     auto lastReset = std::chrono::steady_clock::now();
+    Topology topo;
     while (true) {
         int server_fd = socket(AF_INET, SOCK_DGRAM, 0);
         if (server_fd < 0) {
@@ -148,20 +185,57 @@ void server(){
         char buffer[1024] = {0};
 
         while (true) {
+            // Récéption Rout
             memset(buffer, 0, sizeof(buffer));
-            int recv_len = recvfrom(server_fd, buffer, sizeof(buffer), 0,
+            int recv_len_rout = recvfrom(server_fd, buffer, sizeof(buffer), 0,
                                     (struct sockaddr *)&client_addr, &addrlen);
-            if (recv_len < 0) {
+            if (recv_len_rout < 0) {
                 logMessageServer("recvfrom failed: " + std::string(strerror(errno)));
                 break;
             }
 
-            std::string receivedMsg = "[SERVER] Message reçu de " +
-                std::string(inet_ntoa(client_addr.sin_addr)) + " : " + buffer;
-            logMessageServer(receivedMsg);
+            std::vector<uint8_t> rout;
+            rout.assign(buffer, buffer + recv_len_rout);
+
+            std::string receivedMsg_rout = "[SERVER] Message rout reçu de " +
+                std::string(inet_ntoa(client_addr.sin_addr));
+            logMessageServer(receivedMsg_rout);          
 
             std::this_thread::sleep_for(std::chrono::seconds(1));
 
+            //Récéption Res
+            memset(buffer, 0, sizeof(buffer));
+            int recv_len_res = recvfrom(server_fd, buffer, sizeof(buffer), 0,
+                                    (struct sockaddr *)&client_addr, &addrlen);
+            if (recv_len_res < 0) {
+                logMessageServer("recvfrom failed: " + std::string(strerror(errno)));
+                break;
+            }
+
+            std::vector<uint8_t> res;
+            res.assign(buffer, buffer + recv_len_res);
+
+            std::string receivedMsg_res = "[SERVER] Message res reçu de " +
+                std::string(inet_ntoa(client_addr.sin_addr));
+            logMessageServer(receivedMsg_res);          
+
+            std::this_thread::sleep_for(std::chrono::seconds(1));
+
+            //Création de la topology
+            Topology topoR;
+            topoR.from_serialized(rout, res);
+            topo.add(topoR.getTopology());
+
+            //Mis à jour de la table de routage
+            int res_update = updateRoutingTable(topo);
+
+            if (res_update != 0){
+                logMessageServer("[SERVER] Erreur mis à jour table de routage");
+            } else {
+                logMessageServer("[SERVER] Table de routage mis à jour");
+            }
+
+            //Réponse au client
             const char *response = "REPONSE SERVEUR";
             ssize_t sent = sendto(server_fd, response, strlen(response), 0,
                                   (struct sockaddr *)&client_addr, addrlen);
@@ -186,14 +260,21 @@ void server(){
     }
 }
 
+
+/*
+Fonction pour le CLIENT
+*/
 void client(){
     auto lastReset = std::chrono::steady_clock::now();
+
     Router r = Router("/home/etudiant/helloOSPF/config");
-    std::stringstream ss;
-    ss << r;
-    std::string dataToSend = ss.str();
+    Topology topo;
+    topo.add(r);
+
+    std::vector<uint8_t> res, rout;
+    topo.normalize(rout, res);
+
     const char *message = "HELLO OSPF";
-    std::vector<std::string> broadcastAddresses = getBroadcastAddresses("/home/etudiant/helloOSPF/config");
 
     int sock = socket(AF_INET, SOCK_DGRAM, 0);
     if (sock < 0) {
@@ -220,19 +301,29 @@ void client(){
     std::string myIP = getLocalIPAddress("enp0s8");
 
     while (true) {
-        for (const std::string &broadcastIP : broadcastAddresses) {
+        for (auto neighbors : r.getNeighbors()) {
+            Reseau reseau = std::get<1>(neighbors);
+            auto broadcastIP = getBroadcastAdresse(reseau.getAddr().c_str());
             struct sockaddr_in server_addr;
             memset(&server_addr, 0, sizeof(server_addr));
             server_addr.sin_family = AF_INET;
             server_addr.sin_port = htons(9090);
             server_addr.sin_addr.s_addr = inet_addr(broadcastIP.c_str());
 
-            ssize_t sentBytes = sendto(sock, dataToSend.c_str(), dataToSend.size(), 0,
+            ssize_t sentBytes_rout = sendto(sock, rout.data(), rout.size(), 0,
                                        (struct sockaddr *)&server_addr, sizeof(server_addr));
-            if (sentBytes < 0) {
+            if (sentBytes_rout < 0) {
                 logMessageClient("sendto failed: " + std::string(strerror(errno)));
             } else {
-                logMessageClient("[CLIENT] Broadcast envoyé à " + broadcastIP + " : " + dataToSend);
+                logMessageClient("[CLIENT] Broadcast envoyé à " + broadcastIP);
+            }
+
+            ssize_t sentBytes_res = sendto(sock, res.data(), res.size(), 0,
+                                       (struct sockaddr *)&server_addr, sizeof(server_addr));
+            if (sentBytes_res < 0) {
+                logMessageClient("sendto failed: " + std::string(strerror(errno)));
+            } else {
+                logMessageClient("[CLIENT] Broadcast envoyé à " + broadcastIP);
             }
 
             // Réception de réponse
@@ -270,7 +361,9 @@ void client(){
 
     close(sock);
 }
+#pragma endregion SERVEUR_CLIENT
 
+#pragma region Main
 int main(){
     //CREATION DES THREADS
     std::thread server_thread(server);
@@ -281,3 +374,4 @@ int main(){
 
     return 0;
 }
+#pragma endregion Main

@@ -6,7 +6,8 @@
 #include <iostream>
 #include <sstream>
 #include <regex>
-
+#include <arpa/inet.h>  // pour inet_pton
+#include <netinet/in.h>
 
 class Config {
     private:
@@ -15,12 +16,19 @@ class Config {
         std::ofstream outFile;
         std::mutex mutex;
 
+        bool isValidIP(const std::string& ip) const{
+            struct in_addr addr4;
+            return inet_pton(AF_INET, ip.c_str(), &addr4) == 1;
+        }
+
         bool checkConfiguration(const std::string& text) const{
             size_t pos = text.find(':');
             if (pos == std::string::npos) return false;
 
             std::string nom = text.substr(0, pos);
-            std::string adresse = text.substr(pos + 1);
+            std::string adresseAndmask = text.substr(pos + 1);
+
+            std::cout << "adr&mask " << adresseAndmask << std::endl;
 
             // Vérifie la longueur et caractères du nom
             if (nom.empty() || nom.length() > 8) return false;
@@ -28,19 +36,12 @@ class Config {
                 if (!std::isalnum(c) && c != '_') return false;
             }
 
-            // Vérifie le format général IPv4 avec regex
-            std::regex ipv4Regex(R"(^(\d{1,3}\.){3}\d{1,3}$)");
-            if (!std::regex_match(adresse, ipv4Regex)) return false;
+            size_t pos_space = adresseAndmask.find('-');
+            if (pos_space == std::string::npos) return false;
 
-            // Vérifie que chaque octet est entre 0 et 255
-            std::istringstream ss(adresse);
-            std::string segment;
-            while (std::getline(ss, segment, '.')) {
-                int octet = std::stoi(segment);
-                if (octet < 0 || octet > 255) return false;
-            }
-
-            return true;
+            std::string adresse = adresseAndmask.substr(0, pos_space);
+            std::string mask = adresseAndmask.substr(pos_space + 1);
+            return isValidIP(adresse) && isValidIP(mask);
         }
 
         void createConfiguration(const std::string& text) {

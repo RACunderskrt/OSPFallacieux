@@ -49,9 +49,18 @@ void test7(){
     std::map<std::string, std::string> predecessorMap;
     std::map<std::string, float> shortestPaths = topo_oui[0].calculateShortestPaths(topo_oui, predecessorMap);
 
-    // Supposons que nous voulons afficher le chemin de "NodeA" à "NodeB"
-    //cout << printPath("R3", predecessorMap) << endl;
-    cout << topo.find_interface("R3", predecessorMap) << endl; 
+    //cout << topo.find_interface("R3", predecessorMap) << endl; 
+    //cout << topo.get_commun_network("R3", predecessorMap) << endl;
+    //cout << topo.count_network_occurence("1.1.1.1") << endl;
+    //adresse gw, vector<std::string>
+    string gateway; 
+    vector<std::string> networks;
+    topo.setup_for_routing("R2", predecessorMap, gateway, networks);
+
+    cout << "GW > " << gateway << endl;
+    cout << " Reseau : " << endl;
+    for(auto i : networks)
+        cout << i << endl;
 }
 
 

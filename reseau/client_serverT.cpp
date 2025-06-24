@@ -167,16 +167,16 @@ Met à jour la table de routage
 */
 int updateRoutingTable(Topology topo){
     //Parcours de la topology pour récupérer les réseaux
+    if (topo.getTopology().empty()) {
+        std::cerr << "Erreur : la topologie est vide." << std::endl;
+        return -1;
+    }
     std::map<std::string, std::string> predecessorMap;
     std::map<std::string, float> shortestPaths = topo.getTopology()[0].calculateShortestPaths(topo.getTopology(), predecessorMap);
     std::vector<std::string> reseauRouteur = extractNetworkAddresses("/home/etudiant/helloOSPF/config");
     for(Router routeur : topo.getTopology()){
         for(auto neighbors : routeur.getNeighbors()){
-            Reseau r = std::get<1>(neighbors);
-            topo.find_interface(routeur.getName(),predecessorMap);    
-            if(std::find(reseauRouteur.begin(), reseauRouteur.end(), r.getAddr()) != reseauRouteur.end()){
-                addStaticRoute(r.getAddr(), topo.find_interface(routeur.getName(),predecessorMap), "255.255.255.0");
-            }
+
         }
     }
     return 0;
@@ -242,6 +242,7 @@ Fonction pour le SERVEUR
 void server(){
     auto lastReset = std::chrono::steady_clock::now();
     Topology topo;
+    topo.init_test();
     while (true) {
         int server_fd = socket(AF_INET, SOCK_DGRAM, 0);
         if (server_fd < 0) {
@@ -301,22 +302,20 @@ void server(){
                 std::string(inet_ntoa(client_addr.sin_addr));
             logMessageServer(receivedMsg_res);          
 
-            std::this_thread::sleep_for(std::chrono::seconds(1));
-
             //Création de la topology
             Topology topoR;
             topoR.from_serialized(rout, res);
             topo.add(topoR.getTopology());
 
             //Mis à jour de la table de routage
-            //int res_update = updateRoutingTable(topo);
-            /*
+            int res_update = updateRoutingTable(topo);
+
             if (res_update != 0){
                 logMessageServer("[SERVER] Erreur mis à jour table de routage");
             } else {
                 logMessageServer("[SERVER] Table de routage mis à jour");
             }
-            */
+
             //Réponse au client
             const char *response = "REPONSE SERVEUR";
             ssize_t sent = sendto(server_fd, response, strlen(response), 0,

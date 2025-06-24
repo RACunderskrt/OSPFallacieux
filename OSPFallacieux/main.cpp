@@ -39,18 +39,7 @@ void test5(){
 }
 
 
-string printPath(const std::string& targetNode, const std::map<std::string, std::string>& predecessorMap) {
-    std::vector<std::string> path;
-    std::string current = targetNode;
 
-    // Reconstituer le chemin en remontant les prédécesseurs
-    while (predecessorMap.find(current) != predecessorMap.end()) {
-        path.push_back(current);
-        current = predecessorMap.at(current);
-    }
-
-    return path.back();
-}
 
 void test7(){
     Topology topo;
@@ -61,8 +50,8 @@ void test7(){
     std::map<std::string, float> shortestPaths = topo_oui[0].calculateShortestPaths(topo_oui, predecessorMap);
 
     // Supposons que nous voulons afficher le chemin de "NodeA" à "NodeB"
-    cout << printPath("R3", predecessorMap) << endl;
-    cout << topo_oui[0].findInterface(printPath("R3", predecessorMap)) << endl;
+    //cout << printPath("R3", predecessorMap) << endl;
+    cout << topo.find_interface("R3", predecessorMap) << endl;
     
 }
 
@@ -70,6 +59,6 @@ void test7(){
 
 
 int main(){
-    test5();
+    test7();
     return 0;
 }

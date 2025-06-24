@@ -117,9 +117,27 @@ class Topology{
             routers_serialized = Router::routers_to_binary(routers); //on le serialise
         };
 
+
+        static std::string print_path(const std::string& targetNode, const std::map<std::string, std::string>& predecessorMap) {
+            std::vector<std::string> path;
+            std::string current = targetNode;
+
+            while (predecessorMap.find(current) != predecessorMap.end()) {
+                path.push_back(current);
+                current = predecessorMap.at(current);
+            }
+
+            return path.back();
+        };
+
+        std::string find_interface(const std::string routerName, const std::map<std::string, std::string>& predecessorMap){
+            return topology[0].findInterface(print_path(routerName, predecessorMap));
+        };
+
         void dijkstra(std::map<std::string, std::string> &predecessorMap, std::map<std::string, float> &shortestPaths){
             shortestPaths = topology[0].calculateShortestPaths(topology, predecessorMap);
-        }
+        };
+
 
         friend std::ostream& operator<<(std::ostream& os, const Topology& r); //surcharge de l'opérateur <<  pour print l'objet
 };

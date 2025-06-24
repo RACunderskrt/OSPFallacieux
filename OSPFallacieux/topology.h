@@ -44,16 +44,16 @@ class Topology{
 
         void from_serialized(std::vector<uint8_t> routers, std::vector<uint8_t> reseaux){ //transforme les 2 vector<uint8_t> en une topology
             std::vector<Reseau> reseaux_deserialized = Reseau::from_binary_to_reseaux(reseaux.data(), reseaux.size());
-            std::vector<std::pair<std::string,std::vector<int>>> routers_deserialized = Router::from_binary_to_routers(routers.data(), routers.size());
+            std::vector<std::pair<Router,std::vector<int>>> routers_deserialized = Router::from_binary_to_routers(routers.data(), routers.size());
 
             for(int i = 0; i < routers_deserialized.size(); i++){
                 bool isIn = false;
                 for(int j = 0; j < topology.size(); j++){
-                    if(std::get<0>(routers_deserialized[i]) == topology[j].getName()) 
+                    if(std::get<0>(routers_deserialized[i]).getName() == topology[j].getName()) 
                         isIn = true;
                 }
                 if(!isIn){
-                    Router newRouter = Router("",std::get<0>(routers_deserialized[i]));
+                    Router newRouter = std::get<0>(routers_deserialized[i]);
                     for(auto res_id : std::get<1>(routers_deserialized[i])){
                         newRouter.addNeighbor(Router(),reseaux_deserialized[res_id],"");
                     }
@@ -70,6 +70,7 @@ class Topology{
             r2.setName("R2");
             Router r3 = Router();
             r3.setName("R3");
+            r3.desactivate();
             Reseau l1 = Reseau("L1","0.0.0.0",15);
             Reseau l2 = Reseau("L2","1.1.1.1",20);
             Reseau l3 = Reseau("L3","2.2.2.2",35);
@@ -131,10 +132,13 @@ class Topology{
         };
 
         static std::string print_last_node(const std::string& targetNode, const std::map<std::string, std::string>& predecessorMap) {
-            std::vector<std::string> path;
-            std::string current = predecessorMap.at(targetNode);
-            return current;
-        };
+            try {
+                std::string current = predecessorMap.at(targetNode);
+                return current;
+            } catch (const std::out_of_range& e) {
+                throw std::logic_error("targetNode n'existe pas dans la topologie");
+            }
+        }
 
         std::string get_commun_network(const std::string& targetNodeA, const std::map<std::string, std::string>& predecessorMap){
             const std::string targetNodeB = print_last_node(targetNodeA, predecessorMap);
@@ -143,6 +147,8 @@ class Topology{
                 if(r.getName() == targetNodeA || r.getName() == targetNodeB)
                     buffRouter.push_back(r);
             }
+
+            if(buffRouter.size() != 2) throw std::logic_error("targetNodeA ou targetNodeB n'existe pas dans la topology");
 
             for(auto reseauA : buffRouter[0].getReseaux()){
                 for(auto reseauB : buffRouter[1].getReseaux()){
@@ -153,8 +159,8 @@ class Topology{
             return "";
         }
 
-        std::string find_interface(const std::string routerName, const std::map<std::string, std::string>& predecessorMap){
-            return topology[0].findInterface(print_first_node(routerName, predecessorMap));
+        std::string find_interface(const Router router, const std::map<std::string, std::string>& predecessorMap){
+            return topology[0].findInterface(print_first_node(router.getName(), predecessorMap));
         };
 
         Router find_router(const std::string routerName){
@@ -175,9 +181,13 @@ class Topology{
         }
 
         void setup_for_routing(const std::string routerName, const std::map<std::string, std::string>& predecessorMap, std::string& gateway, std::vector<std::string>& networks){
-            gateway = find_interface(routerName, predecessorMap);
-            networks.push_back(get_commun_network(routerName, predecessorMap));
             Router actualRouter = find_router(routerName);
+            
+            if(!actualRouter.isActive()) return;
+            
+            gateway = find_interface(actualRouter, predecessorMap);
+            networks.push_back(get_commun_network(routerName, predecessorMap));
+            
             for(auto r : actualRouter.getReseaux()){
                 if(count_network_occurence(r.getAddr()) == 1)
                     networks.push_back(r.getAddr());

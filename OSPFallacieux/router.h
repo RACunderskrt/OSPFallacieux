@@ -58,6 +58,13 @@ class Router{
             else
                 name = name_;
         };
+        Router(std::string path, std::string name_, bool active_): active(active_){
+            if(!path.size())
+                loadConfigurationFile(path, name_);
+            else
+                name = name_;
+                
+        };
 
         void setName(std::string name_){
             name = name_;
@@ -69,6 +76,14 @@ class Router{
 
         bool isActive(){
             return active;
+        }
+
+        void activate(){
+            active = true;
+        }
+
+        void desactivate(){
+            active = false;
         }
 
         std::vector<std::tuple<Router,Reseau, std::string>> getNeighbors() const{
@@ -131,6 +146,9 @@ class Router{
 
                 for (const auto& neighborInfo : currentRouter.getNeighbors()) {
                     Router neighbor = std::get<0>(neighborInfo);
+                    
+                    if (!neighbor.isActive()) continue;
+
                     Reseau link = std::get<1>(neighborInfo);
                     std::string neighborName = neighbor.getName();
 
@@ -171,8 +189,8 @@ class Router{
             return buffer;
         };
 
-        static std::vector<std::pair<std::string, std::vector<int>>> from_binary_to_routers(const uint8_t* data, size_t size) { //deserialize un tableau binaire en router
-            std::vector<std::pair<std::string, std::vector<int>>> result;
+        static std::vector<std::pair<Router, std::vector<int>>> from_binary_to_routers(const uint8_t* data, size_t size) { //deserialize un tableau binaire en router
+            std::vector<std::pair<Router, std::vector<int>>> result;
             size_t offset = 0;
 
             auto read_int = [&]() -> int32_t { //transforme plusieurs uint8_t en int
@@ -187,6 +205,11 @@ class Router{
                 str = str.c_str();
                 offset += 8;
 
+                bool activated = data[offset];
+                offset += 1;
+                
+                std::cout << "activated " << activated << std::endl;
+
                 int32_t vec_len = read_int(); //récupere le nombre de reseau disponible
 
                 if (offset + vec_len * sizeof(int32_t) > size) break;
@@ -196,7 +219,7 @@ class Router{
                     vec.push_back(read_int());
                 }
 
-                result.emplace_back(str, vec);
+                result.emplace_back(Router("",str,activated), vec);
             }
 
             return result;

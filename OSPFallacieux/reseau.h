@@ -55,7 +55,7 @@ class Reseau{
         };
 
         static std::vector<Reseau> from_binary_to_reseaux(const uint8_t* data, size_t size) { //serialize le reseau en tableau binaire
-            constexpr size_t RESEAU_SIZE = 17; //ça doit être des paquets de 17, si c'est pas le cas le fonction quitte
+            constexpr size_t RESEAU_SIZE = 16; //ça doit être des paquets de 17, si c'est pas le cas le fonction quitte
             if (size % RESEAU_SIZE != 0)
                 throw std::runtime_error("Données corrompues ou incomplètes");
 

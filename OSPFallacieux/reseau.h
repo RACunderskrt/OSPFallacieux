@@ -23,7 +23,7 @@ class Reseau{
 
         Reseau(){};
         Reseau(std::string name_): name(name_), addr("0.0.0.0"), poids(0), active(true){};
-        Reseau(std::string name_, std::string addr_): name(name_), addr(addr_), poids(0), active(true){};
+        Reseau(std::string name_, std::string addr_): name(name_), addr(addr_), poids(10), active(true){};
         Reseau(std::string name_, std::string addr_, float poids_): name(name_), addr(addr_), poids(poids_), active(true){};
         Reseau(std::string name_, std::string addr_, float poids_, bool act_): name(name_), addr(addr_), poids(poids_), active(act_){};
         

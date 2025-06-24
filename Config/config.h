@@ -124,11 +124,11 @@ class Config {
         }
 
         void startService(){
-            system("ls"); //mettre la commande pour lancer le service
+            system("systemctl start server.service"); //mettre la commande pour lancer le service
         }
 
         void stopService(){
-            system("ls"); //mettre la commande pour stopper le service
+            system("systemctl stop server.service"); //mettre la commande pour stopper le service
         }
 
         void setName(const std::string& param){

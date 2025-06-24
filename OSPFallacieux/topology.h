@@ -14,6 +14,10 @@ class Topology{
     public:
         Topology(){};
         Topology(std::vector<Router> topology_):topology(topology_){};
+        Topology(std::string link){
+            Router r1 = Router(link);
+            add(r1);
+        }
 
         std::vector<Router> getTopology(){
             return topology;

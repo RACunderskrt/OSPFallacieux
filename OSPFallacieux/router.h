@@ -202,7 +202,7 @@ class Router{
                 bool activated = data[offset];
                 offset += 1;
                 
-                std::cout << "activated " << activated << std::endl;
+                std::cout << "activated " << activated << " " << str << std::endl;
 
                 int32_t vec_len = read_int(); //récupere le nombre de reseau disponible
 

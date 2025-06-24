@@ -11,6 +11,9 @@
 
 using namespace std;
 
+
+Topology t = Topology("/etc/ospfallacieux/config");
+
 void test2(){
     Router r4 = Router("/etc/ospfallacieux/config");   
     cout << r4 << endl;
@@ -68,6 +71,11 @@ void test7(){
     //cout << topo.get_commun_network("R3", predecessorMap) << endl;
     //cout << topo.count_network_occurence("1.1.1.1") << endl;
     //adresse gw, vector<std::string>
+
+    std::vector<uint8_t> res, rout;
+    topo.normalize(rout, res);
+    topo.from_serialized(rout, res);
+
     string gateway; 
     vector<std::string> networks;
     topo.setup_for_routing("R2", predecessorMap, gateway, networks);
@@ -82,6 +90,6 @@ void test7(){
 
 
 int main(){
-    test3();
+    test7();
     return 0;
 }

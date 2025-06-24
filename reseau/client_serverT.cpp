@@ -43,6 +43,31 @@ std::string getLocalIPAddress(const std::string& interface = "eth0") {
 }
 
 /*
+Récupère les adresses des réseaux contenu dans le fichier
+*/
+std::vector<std::string> extractNetworkAddresses(const std::string& filepath) {
+    std::vector<std::string> networks;
+    std::ifstream infile(filepath);
+    std::string line;
+
+    while (std::getline(infile, line)) {
+        // Ignore les lignes qui commencent par "/name:"
+        if (line.find("/name:") == 0) {
+            continue;
+        }
+
+        std::istringstream iss(line);
+        std::string key, ip;
+
+        if (std::getline(iss, key, ':') && std::getline(iss, ip)) {
+            networks.push_back(ip);
+        }
+    }
+
+    return networks;
+}
+
+/*
 Permet d'ajouter une route statique
 */
 int addStaticRoute(const std::string& destination, const std::string& gateway, const std::string& netmask) {
@@ -86,17 +111,74 @@ int addStaticRoute(const std::string& destination, const std::string& gateway, c
 }
 
 /*
+Met à jour une route statique avec une nouvelle gateway
+*/
+int replaceStaticRoute(const std::string& destination, const std::string& gateway, const std::string& netmask) {
+    int sockfd = socket(AF_INET, SOCK_DGRAM, 0);
+    if (sockfd < 0) {
+        perror("socket");
+        return -1;
+    }
+
+    struct rtentry route;
+    memset(&route, 0, sizeof(route));
+    struct sockaddr_in* addr;
+
+    // Destination
+    addr = (struct sockaddr_in*)&route.rt_dst;
+    addr->sin_family = AF_INET;
+    inet_pton(AF_INET, destination.c_str(), &addr->sin_addr);
+
+    // Gateway
+    addr = (struct sockaddr_in*)&route.rt_gateway;
+    addr->sin_family = AF_INET;
+    inet_pton(AF_INET, gateway.c_str(), &addr->sin_addr);
+
+    // Netmask
+    addr = (struct sockaddr_in*)&route.rt_genmask;
+    addr->sin_family = AF_INET;
+    inet_pton(AF_INET, netmask.c_str(), &addr->sin_addr);
+
+    route.rt_flags = RTF_UP | RTF_GATEWAY;
+    route.rt_metric = 1;
+
+    // D'abord, essayer de supprimer la route existante (si elle existe)
+    if (ioctl(sockfd, SIOCDELRT, &route) < 0) {
+        if (errno != ESRCH) {  // ESRCH = No such route
+            perror("ioctl - SIOCDELRT");
+            close(sockfd);
+            return -1;
+        }
+    }
+
+    // Ajouter la nouvelle route avec la nouvelle passerelle
+    if (ioctl(sockfd, SIOCADDRT, &route) < 0) {
+        perror("ioctl - SIOCADDRT");
+        close(sockfd);
+        return -1;
+    }
+
+    close(sockfd);
+    return 0;
+}
+
+/*
 Met à jour la table de routage
 */
 int updateRoutingTable(Topology topo){
     //Parcours de la topology pour récupérer les réseaux
     std::map<std::string, std::string> predecessorMap;
     std::map<std::string, float> shortestPaths = topo.getTopology()[0].calculateShortestPaths(topo.getTopology(), predecessorMap);
-
+    std::vector<std::string> reseauRouteur = extractNetworkAddresses("/home/etudiant/helloOSPF/config");
     for(Router routeur : topo.getTopology()){
-        topo.getTopology()[0].findInterface(printPath);
+        for(auto neighbors : routeur.getNeighbors()){
+            Reseau r = std::get<1>(neighbors);
+            topo.find_interface(routeur.getName(),predecessorMap);    
+            if(std::find(reseauRouteur.begin(), reseauRouteur.end(), r.getAddr()) != reseauRouteur.end()){
+                addStaticRoute(r.getAddr(), topo.find_interface(routeur.getName(),predecessorMap), "255.255.255.0");
+            }
+        }
     }
-
     return 0;
 }
 
@@ -227,14 +309,14 @@ void server(){
             topo.add(topoR.getTopology());
 
             //Mis à jour de la table de routage
-            int res_update = updateRoutingTable(topo);
-
+            //int res_update = updateRoutingTable(topo);
+            /*
             if (res_update != 0){
                 logMessageServer("[SERVER] Erreur mis à jour table de routage");
             } else {
                 logMessageServer("[SERVER] Table de routage mis à jour");
             }
-
+            */
             //Réponse au client
             const char *response = "REPONSE SERVEUR";
             ssize_t sent = sendto(server_fd, response, strlen(response), 0,
@@ -248,7 +330,7 @@ void server(){
             // Reset du fichier log toutes les 60 secondes
             auto now = std::chrono::steady_clock::now();
             if (std::chrono::duration_cast<std::chrono::seconds>(now - lastReset).count() >= 60) {
-                std::ofstream resetLog("/home/etudiant/helloOSPF/log/server_log.txt", std::ios::trunc);
+                std::ofstream resetLog("/home/etudiant/helloOSPF/log/server_logT.txt", std::ios::trunc);
                 if (resetLog.is_open()) {
                     resetLog << "[" << getCurrentTimestamp() << "] Log reset" << std::endl;
                     resetLog.close();
@@ -349,7 +431,7 @@ void client(){
         // Reset du fichier log toutes les 60 secondes
         auto now = std::chrono::steady_clock::now();
         if (std::chrono::duration_cast<std::chrono::seconds>(now - lastReset).count() >= 60) {
-            std::ofstream resetLog("/home/etudiant/helloOSPF/log/client_log.txt", std::ios::trunc);
+            std::ofstream resetLog("/home/etudiant/helloOSPF/log/client_logT.txt", std::ios::trunc);
             if (resetLog.is_open()) {
                 resetLog << "[" << getCurrentTimestamp() << "] Log reset" << std::endl;
                 resetLog.close();

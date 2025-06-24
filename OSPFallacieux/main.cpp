@@ -19,7 +19,12 @@ void test2(){
 }
 
 void test3(){
-    
+    Topology topo, topo2;
+    topo.init_test();
+    topo2.init_test_desactivate();
+    cout << "topo avant : \n" << topo << endl;
+    topo.add(topo2.getTopology());
+    cout << "topo apres : \n" << topo << endl;
 }
 
 void test5(){
@@ -77,6 +82,6 @@ void test7(){
 
 
 int main(){
-    test7();
+    test3();
     return 0;
 }

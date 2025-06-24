@@ -28,18 +28,21 @@ class Topology{
         };
 
         void add(std::vector<Router> routers){
-            for(auto& t: topology){
-                
+            for(auto& t: routers){  
                 if(t.getName() == topology[0].getName())
                     continue;
-
-                for(auto& r: routers){ //si le router existe deja dans la topology, il est mis a jour
-                    if(r.getName() == t.getName())
-                        t = r;
-                    else
-                        topology.push_back(r); //sinon, il est ajouté a la topology
+                bool isIn = false;
+                for(int i = 1; i < topology.size(); i++){
+                    if(t.getName() == topology[i].getName()){
+                        isIn = true;
+                        topology[i] = t;
+                        break;
+                    }
                 }
+                if(!isIn)
+                    topology.push_back(t);
             }
+            
         };
 
         void from_serialized(std::vector<uint8_t> routers, std::vector<uint8_t> reseaux){ //transforme les 2 vector<uint8_t> en une topology
@@ -70,7 +73,8 @@ class Topology{
             r2.setName("R2");
             Router r3 = Router();
             r3.setName("R3");
-            r3.desactivate();
+            Router r4 = Router();
+            r4.setName("R4");
             Reseau l1 = Reseau("L1","0.0.0.0",15);
             Reseau l2 = Reseau("L2","1.1.1.1",20);
             Reseau l3 = Reseau("L3","2.2.2.2",35);
@@ -80,6 +84,30 @@ class Topology{
             r3.addNeighbor(r2,l2,"1.1.1.2");
             r3.addNeighbor(Router(),l3,"2.2.2.5");
             topology = {r1, r2, r3};
+        };
+
+        void init_test_desactivate(){ //créer une topology de base pour les tests
+            Router r1 = Router();
+            r1.setName("R1");
+            r1.desactivate();
+            Router r2 = Router();
+            r2.setName("R2");
+            r2.desactivate();
+            Router r3 = Router();
+            r3.setName("R3");
+            r3.desactivate();
+            Router r4 = Router();
+            r4.setName("R4");
+            Reseau l1 = Reseau("L1","0.0.0.0",15);
+            Reseau l2 = Reseau("L2","1.1.1.1",20);
+            Reseau l3 = Reseau("L3","2.2.2.2",35);
+            r1.addNeighbor(r2,l1,"0.0.0.1");
+            r2.addNeighbor(r1,l1,"0.0.0.2");
+            r1.addNeighbor(r4,l3,"2.2.2.4");
+            r2.addNeighbor(r3,l2,"1.1.1.3");
+            r3.addNeighbor(r2,l2,"1.1.1.2");
+            r3.addNeighbor(Router(),l3,"2.2.2.5");
+            topology = {r1, r2, r3, r4};
         };
 
         void normalize(std::vector<uint8_t>& routers_serialized, std::vector<uint8_t>& reseaux_serialized) { //stocke la topology normalisé+serialisé dans 2 vector<uint8_t> passé en parametre

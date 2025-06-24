@@ -90,6 +90,6 @@ void test7(){
 
 
 int main(){
-    test7();
+    test5();
     return 0;
 }

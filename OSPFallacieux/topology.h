@@ -53,21 +53,17 @@ class Topology{
             std::vector<Reseau> reseaux_deserialized = Reseau::from_binary_to_reseaux(reseaux.data(), reseaux.size());
             std::vector<std::pair<Router,std::vector<int>>> routers_deserialized = Router::from_binary_to_routers(routers.data(), routers.size());
 
-            for(int i = 0; i < routers_deserialized.size(); i++){
-                bool isIn = false;
-                for(int j = 0; j < topology.size(); j++){
-                    if(std::get<0>(routers_deserialized[i]).getName() == topology[j].getName()) 
-                        isIn = true;
+            std::vector<Router> bufRouters;
+            for(int i = 0; i < routers_deserialized.size(); i++){  
+                Router newRouter = std::get<0>(routers_deserialized[i]);
+                for(auto res_id : std::get<1>(routers_deserialized[i])){
+                    newRouter.addNeighbor(Router(),reseaux_deserialized[res_id],"");
                 }
-                if(!isIn){
-                    Router newRouter = std::get<0>(routers_deserialized[i]);
-                    for(auto res_id : std::get<1>(routers_deserialized[i])){
-                        newRouter.addNeighbor(Router(),reseaux_deserialized[res_id],"");
-                    }
 
-                    topology.push_back(newRouter);
-                }
+                bufRouters.push_back(newRouter);
             }
+
+            add(bufRouters);
         }
 
         void init_test(){ //créer une topology de base pour les tests

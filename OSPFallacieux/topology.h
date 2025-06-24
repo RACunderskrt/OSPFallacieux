@@ -72,11 +72,12 @@ class Topology{
             r3.setName("R3");
             Reseau l1 = Reseau("L1","0.0.0.0",15);
             Reseau l2 = Reseau("L2","1.1.1.1",20);
-
+            Reseau l3 = Reseau("L3","2.2.2.2",35);
             r1.addNeighbor(r2,l1,"0.0.0.1");
             r2.addNeighbor(r1,l1,"0.0.0.2");
             r2.addNeighbor(r3,l2,"1.1.1.3");
             r3.addNeighbor(r2,l2,"1.1.1.2");
+            r3.addNeighbor(Router(),l3,"2.2.2.5");
             topology = {r1, r2, r3};
         };
 
@@ -117,8 +118,7 @@ class Topology{
             routers_serialized = Router::routers_to_binary(routers); //on le serialise
         };
 
-
-        static std::string print_path(const std::string& targetNode, const std::map<std::string, std::string>& predecessorMap) {
+        static std::string print_first_node(const std::string& targetNode, const std::map<std::string, std::string>& predecessorMap) {
             std::vector<std::string> path;
             std::string current = targetNode;
 
@@ -130,9 +130,59 @@ class Topology{
             return path.back();
         };
 
-        std::string find_interface(const std::string routerName, const std::map<std::string, std::string>& predecessorMap){
-            return topology[0].findInterface(print_path(routerName, predecessorMap));
+        static std::string print_last_node(const std::string& targetNode, const std::map<std::string, std::string>& predecessorMap) {
+            std::vector<std::string> path;
+            std::string current = predecessorMap.at(targetNode);
+            return current;
         };
+
+        std::string get_commun_network(const std::string& targetNodeA, const std::map<std::string, std::string>& predecessorMap){
+            const std::string targetNodeB = print_last_node(targetNodeA, predecessorMap);
+            std::vector<Router> buffRouter;
+            for(auto r : topology){
+                if(r.getName() == targetNodeA || r.getName() == targetNodeB)
+                    buffRouter.push_back(r);
+            }
+
+            for(auto reseauA : buffRouter[0].getReseaux()){
+                for(auto reseauB : buffRouter[1].getReseaux()){
+                    if(reseauA.getAddr() == reseauB.getAddr())
+                        return reseauA.getAddr();
+                }
+            }
+            return "";
+        }
+
+        std::string find_interface(const std::string routerName, const std::map<std::string, std::string>& predecessorMap){
+            return topology[0].findInterface(print_first_node(routerName, predecessorMap));
+        };
+
+        Router find_router(const std::string routerName){
+            for(auto router: topology){
+                if(router.getName() == routerName)
+                    return router;
+            }
+            throw std::logic_error("Condition inattendue dans getRouter()");
+        }
+
+        int count_network_occurence(const std::string addr){
+            int res = 0;
+            for(auto router: topology){
+                for(auto reseau : router.getReseaux())
+                    res += reseau.getAddr() == addr;
+            }
+            return res;
+        }
+
+        void setup_for_routing(const std::string routerName, const std::map<std::string, std::string>& predecessorMap, std::string& gateway, std::vector<std::string>& networks){
+            gateway = find_interface(routerName, predecessorMap);
+            networks.push_back(get_commun_network(routerName, predecessorMap));
+            Router actualRouter = find_router(routerName);
+            for(auto r : actualRouter.getReseaux()){
+                if(count_network_occurence(r.getAddr()) == 1)
+                    networks.push_back(r.getAddr());
+            }
+        }
 
         void dijkstra(std::map<std::string, std::string> &predecessorMap, std::map<std::string, float> &shortestPaths){
             shortestPaths = topology[0].calculateShortestPaths(topology, predecessorMap);

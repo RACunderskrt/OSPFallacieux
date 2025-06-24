@@ -14,6 +14,7 @@ class Router{
     private :
         std::string name;
         std::vector<std::tuple<Router,Reseau, std::string>> neighbors;
+        bool active;
 
         void loadConfigurationFile(std::string path, std::string name_ = "R1"){
             std::mutex mutex;
@@ -47,11 +48,11 @@ class Router{
     
     public :
 
-        Router(): name(""){};
-        Router(std::string path){
+        Router(): name(""), active(true){};
+        Router(std::string path): active(true){
             loadConfigurationFile(path);
         };
-        Router(std::string path, std::string name_){
+        Router(std::string path, std::string name_): active(true){
             if(!path.size())
                 loadConfigurationFile(path, name_);
             else
@@ -66,6 +67,10 @@ class Router{
             return name;
         };
 
+        bool isActive(){
+            return active;
+        }
+
         std::vector<std::tuple<Router,Reseau, std::string>> getNeighbors() const{
             return neighbors;
         };
@@ -73,6 +78,14 @@ class Router{
         void addNeighbor(Router rout, Reseau res, std::string i_){
             neighbors.push_back(std::make_tuple(rout, res, i_));
         };
+
+        std::vector<Reseau> getReseaux(){
+            std::vector<Reseau> res;
+            for(auto r: neighbors){
+                res.push_back(std::get<1>(r));
+            }
+            return res;
+        }
 
         std::string findInterface(std::string routerName){ //grâce au nom du router cible, on retrouve l'interface necessaire au routage
             for(auto voisin: neighbors){
@@ -114,12 +127,12 @@ class Router{
 
                 Router currentRouter = nameToRouter[current];
 
+                if (!currentRouter.isActive()) continue;
+
                 for (const auto& neighborInfo : currentRouter.getNeighbors()) {
                     Router neighbor = std::get<0>(neighborInfo);
                     Reseau link = std::get<1>(neighborInfo);
                     std::string neighborName = neighbor.getName();
-
-                    if (!link.isActive()) continue;
 
                     float cost = link.getPoids();
 
@@ -194,7 +207,10 @@ class Router{
 };
 
 std::ostream& operator<<(std::ostream& os, const Router& router) {
-    os << "Router Name: " << router.name << "\n";
+    os << "Router Name: " << router.name;
+    if(router.active)
+        os << " - Active";
+    os << "\n";
     os << "Neighbors:\n";
     for (const auto& neighbor : router.neighbors) {
         os << " - " << std::get<0>(neighbor).name

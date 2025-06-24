@@ -11,7 +11,6 @@ class Reseau{
         std::string name;
         std::string addr;
         float poids;
-        bool active;
 
         static std::string ip_to_string(const uint8_t ip[4]) {
             char str[INET_ADDRSTRLEN];
@@ -22,10 +21,10 @@ class Reseau{
     public :
 
         Reseau(){};
-        Reseau(std::string name_): name(name_), addr("0.0.0.0"), poids(0), active(true){};
-        Reseau(std::string name_, std::string addr_): name(name_), addr(addr_), poids(10), active(true){};
-        Reseau(std::string name_, std::string addr_, float poids_): name(name_), addr(addr_), poids(poids_), active(true){};
-        Reseau(std::string name_, std::string addr_, float poids_, bool act_): name(name_), addr(addr_), poids(poids_), active(act_){};
+        Reseau(std::string name_): name(name_), addr("0.0.0.0"), poids(0){};
+        Reseau(std::string name_, std::string addr_): name(name_), addr(addr_), poids(10){};
+        Reseau(std::string name_, std::string addr_, float poids_): name(name_), addr(addr_), poids(poids_){};
+        Reseau(std::string name_, std::string addr_, float poids_, bool act_): name(name_), addr(addr_), poids(poids_){};
         
         std::string getName() const{
             return name;
@@ -49,18 +48,6 @@ class Reseau{
 
         void getPoids(float poids_){
             poids = poids_;
-        };
-
-        bool isActive() const{
-            return active;
-        };
-
-        void setActive(bool active_){
-            active = active_;
-        };
-
-        void desactivate(){
-            active = false;
         };
 
         bool includes(std::string str){ //check si la string passé en param est le nom ou l'adresse du réseau
@@ -93,9 +80,6 @@ class Reseau{
                 memcpy(&r.poids, data + offset, sizeof(float)); //son poids
                 offset += 4;
 
-                r.active = static_cast<bool>(data[offset]); //si il est actif
-                offset += 1;
-
                 reseaux.push_back(r);
             }
 
@@ -121,8 +105,6 @@ class Reseau{
                 uint8_t poidsBytes[4]; //ajoute le poids en tant que uint8_t
                 std::memcpy(poidsBytes, &r.poids, sizeof(float));
                 data.insert(data.end(), poidsBytes, poidsBytes + 4);
-
-                data.push_back(static_cast<uint8_t>(r.active ? 1 : 0)); //ajoute si la route est active ou non
             }
 
             return data;
@@ -137,9 +119,6 @@ class Reseau{
 
 std::ostream& operator<<(std::ostream& os, const Reseau& r) {
     os << "Network Name: " << r.name;
-    if(r.isActive())
-        os << " - Active";
-    os << "\n";
     os << "Address: " << r.addr << "\n";
     os << "Poids: " << r.poids << "\n";
     return os;

@@ -118,7 +118,7 @@ class Reseau{
 };
 
 std::ostream& operator<<(std::ostream& os, const Reseau& r) {
-    os << "Network Name: " << r.name;
+    os << "Network Name: " << r.name << std::endl;
     os << "Address: " << r.addr << "\n";
     os << "Poids: " << r.poids << "\n";
     return os;

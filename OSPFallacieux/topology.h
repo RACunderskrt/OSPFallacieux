@@ -29,6 +29,10 @@ class Topology{
 
         void add(std::vector<Router> routers){
             for(auto& t: topology){
+                
+                if(t.getName() == topology[0].getName())
+                    continue;
+
                 for(auto& r: routers){ //si le router existe deja dans la topology, il est mis a jour
                     if(r.getName() == t.getName())
                         t = r;

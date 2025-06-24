@@ -39,7 +39,17 @@ void test5(){
 }
 
 
-
+void printDistances(const std::map<std::string, float>& distances) {
+    for (const auto& entry : distances) {
+        std::cout << "Routeur: " << entry.first << ", Distance: ";
+        if (entry.second == std::numeric_limits<float>::infinity()) {
+            std::cout << "infini";
+        } else {
+            std::cout << entry.second;
+        }
+        std::cout << std::endl;
+    }
+}
 
 void test7(){
     Topology topo;
@@ -48,7 +58,7 @@ void test7(){
     auto topo_oui = topo.getTopology();
     std::map<std::string, std::string> predecessorMap;
     std::map<std::string, float> shortestPaths = topo_oui[0].calculateShortestPaths(topo_oui, predecessorMap);
-
+    //printDistances(shortestPaths);
     //cout << topo.find_interface("R3", predecessorMap) << endl; 
     //cout << topo.get_commun_network("R3", predecessorMap) << endl;
     //cout << topo.count_network_occurence("1.1.1.1") << endl;

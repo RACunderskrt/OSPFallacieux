@@ -58,13 +58,7 @@ class Router{
             else
                 name = name_;
         };
-        Router(std::string path, std::string name_, bool active_): active(active_){
-            if(!path.size())
-                loadConfigurationFile(path, name_);
-            else
-                name = name_;
-                
-        };
+        Router(std::string name_, bool active_):name(name_), active(active_){};
 
         void setName(std::string name_){
             name = name_;
@@ -219,7 +213,7 @@ class Router{
                     vec.push_back(read_int());
                 }
 
-                result.emplace_back(Router("",str,activated), vec);
+                result.emplace_back(Router(str,activated), vec);
             }
 
             return result;

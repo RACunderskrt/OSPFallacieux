@@ -40,10 +40,10 @@ void test5(){
     cout << "topo avant : \n" << topo << endl;
 
     std::vector<uint8_t> res, rout;
+    
     topo.normalize(rout, res);
-    topo.from_serialized(rout, res);
-    cout << "==============================" << endl;
-    cout << "topo apres : \n" << topo << endl;
+    topo2.from_serialized(rout, res);
+    cout << "topo apres : \n" << topo2 << endl;
 }
 
 

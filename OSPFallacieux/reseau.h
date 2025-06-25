@@ -5,6 +5,7 @@
 #include <cstdint>
 #include <stdexcept>
 #include <arpa/inet.h> 
+#include <sstream>
 
 class Reseau{
     private :
@@ -16,6 +17,24 @@ class Reseau{
             char str[INET_ADDRSTRLEN];
             inet_ntop(AF_INET, ip, str, INET_ADDRSTRLEN);
             return std::string(str);
+        }
+
+        static std::vector<uint8_t> parseIP(const std::string& ipStr) {
+            std::vector<uint8_t> result;
+            std::stringstream ss(ipStr);
+            std::string segment;
+
+            while (std::getline(ss, segment, '.')) {
+                int byte = std::stoi(segment);
+                if (byte < 0 || byte > 255) throw std::out_of_range("Invalid byte in IP");
+                result.push_back(static_cast<uint8_t>(byte));
+            }
+
+            if (result.size() != 4) {
+                throw std::invalid_argument("Invalid IP address format");
+            }
+
+            return result;
         }
     
     public :
@@ -98,10 +117,8 @@ class Reseau{
                     }
                 }
 
-                for (int i = 0; i < 4; ++i) {
-                    data.push_back(r.addr[i]);
-                }
-
+                std::vector<uint8_t> ip = parseIP(r.addr);
+                data.insert(data.end(), ip.begin(), ip.end());
                 uint8_t poidsBytes[4]; //ajoute le poids en tant que uint8_t
                 std::memcpy(poidsBytes, &r.poids, sizeof(float));
                 data.insert(data.end(), poidsBytes, poidsBytes + 4);

@@ -31,23 +31,29 @@ class Topology{
             topology.push_back(router);
         };
 
-        void add(std::vector<Router> routers){
-            for(auto& t: routers){  
-                if(t.getName() == topology[0].getName())
-                    continue;
-                bool isIn = false;
-                for(int i = 1; i < topology.size(); i++){
-                    if(t.getName() == topology[i].getName()){
-                        isIn = true;
-                        topology[i] = t;
-                        break;
+        void add(std::vector<Router> routers) {
+            try {
+                for (auto& t : routers) {
+                    if (t.getName() == topology[0].getName())
+                        continue;
+
+                    bool isIn = false;
+                    for (int i = 1; i < topology.size(); i++) {
+                        if (t.getName() == topology[i].getName()) {
+                            isIn = true;
+                            topology[i] = t;
+                            break;
+                        }
                     }
+                    if (!isIn)
+                        topology.push_back(t);
                 }
-                if(!isIn)
-                    topology.push_back(t);
+            } catch (const std::out_of_range& e) {
+                std::cerr << "Il faut au minimum 1 router dans la topology : " << e.what() << std::endl;
+            } catch (const std::exception& e) {
+                std::cerr << "Exception capturée: " << e.what() << std::endl;
             }
-            
-        };
+        }
 
         void from_serialized(std::vector<uint8_t> routers, std::vector<uint8_t> reseaux){ //transforme les 2 vector<uint8_t> en une topology
             std::vector<Reseau> reseaux_deserialized = Reseau::from_binary_to_reseaux(reseaux.data(), reseaux.size());
@@ -62,7 +68,6 @@ class Topology{
 
                 bufRouters.push_back(newRouter);
             }
-
             add(bufRouters);
         }
 
@@ -129,7 +134,7 @@ class Topology{
 
             reseaux_serialized = Reseau::reseaux_to_binary(reseaux); //on le serialise
 
-            std::vector<std::pair<std::string,std::vector<int>>> routers;
+            std::vector<std::pair<Router,std::vector<int>>> routers;
 
             for (const auto& router : topology) { //on garde chaque router avec l'index des reseaus dans le vector precedent
                 std::vector<int> reseau_ids;
@@ -141,7 +146,7 @@ class Topology{
                         reseau_ids.push_back(index);
                     }
                 }
-                routers.push_back(std::make_pair(router.getName(), reseau_ids));
+                routers.push_back(std::make_pair(router, reseau_ids));
             }
 
             routers_serialized = Router::routers_to_binary(routers); //on le serialise

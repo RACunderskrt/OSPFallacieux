@@ -161,7 +161,7 @@ class Router{
             return distances;
         };
 
-        static std::vector<uint8_t> routers_to_binary(const std::vector<std::pair<std::string, std::vector<int>>>& data) { //serialize le router en tableau binaire
+        static std::vector<uint8_t> routers_to_binary(const std::vector<std::pair<Router, std::vector<int>>>& data) { //serialize le router en tableau binaire
             std::vector<uint8_t> buffer;
 
             auto append_int = [&](int32_t val) { //transforme un int en uint_8
@@ -169,10 +169,14 @@ class Router{
                 buffer.insert(buffer.end(), p, p + sizeof(int32_t));
             };
 
-            for (const auto& [str, vec] : data) {
-                std::string s = str.substr(0, 8); // Ajoute string sur 8 octets (padded avec '\0')
+            for (const auto& pair : data) {
+                Router bufRout = std::get<0>(pair);
+                std::vector<int> vec = std::get<1>(pair);
+                std::string s = bufRout.getName().substr(0, 8); // Ajoute string sur 8 octets (padded avec '\0')
                 s.resize(8, '\0');
                 buffer.insert(buffer.end(), s.begin(), s.end());
+
+                buffer.push_back(bufRout.isActive());
 
                 append_int(vec.size()); // Ajoute la taille du vector<int>
 

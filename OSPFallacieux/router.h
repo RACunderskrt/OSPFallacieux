@@ -104,61 +104,65 @@ class Router{
             return "";
         };
 
-        std::map<std::string, float> calculateShortestPaths(const std::vector<Router>& allRouters,std::map<std::string, std::string>& predecessorMap){  //calcul le chemin le plus court et redonne le chemin
-            std::map<std::string, float> distances;
-            std::map<std::string, bool> visited;
+        std::unordered_map<std::string, std::vector<std::string>> dijkstra_all_paths(std::vector<Router> routers) {
+            std::unordered_map<std::string, float> distances;
+            std::unordered_map<std::string, std::string> previous;
+            std::set<std::pair<float, std::string>> pq;
 
-            for (const Router& r : allRouters) {
+            for (auto r : routers) {
                 distances[r.getName()] = std::numeric_limits<float>::infinity();
-                visited[r.getName()] = false;
             }
 
-            distances[this->name] = 0.0f;
-
-            auto cmp = [&distances](const std::string& left, const std::string& right) {
-                return distances[left] > distances[right];
-            };
-
-            std::priority_queue<std::string, std::vector<std::string>, decltype(cmp)> pq(cmp);
-            pq.push(this->name);
-
-            std::map<std::string, Router> nameToRouter;
-            for (const Router& r : allRouters) {
-                nameToRouter[r.getName()] = r;
-            }
+            distances[name] = 0.0f;
+            pq.insert({0.0f, name});
 
             while (!pq.empty()) {
-                std::string current = pq.top();
-                pq.pop();
+                auto [dist, current_name] = *pq.begin();
+                pq.erase(pq.begin());
 
-                if (visited[current]) continue;
-                visited[current] = true;
+                Router current = Router();
+                for (auto r : routers) {
+                    if (r.getName() == current_name) {
+                        current = r;
+                        break;
+                    }
+                }
 
-                Router currentRouter = nameToRouter[current];
+                if (!current.isActive()) continue;
 
-                if (!currentRouter.isActive()) continue;
-
-                for (const auto& neighborInfo : currentRouter.getNeighbors()) {
-                    Router neighbor = std::get<0>(neighborInfo);
-                    
+                for (auto& [neighbor, reseau, _] : current.getNeighbors()) {
                     if (!neighbor.isActive()) continue;
 
-                    Reseau link = std::get<1>(neighborInfo);
-                    std::string neighborName = neighbor.getName();
-
-                    float cost = link.getPoids();
-
-                    if (distances[current] + cost < distances[neighborName]) {
-                        distances[neighborName] = distances[current] + cost;
-                        pq.push(neighborName);
-
-                        // Met à jour le prédécesseur du voisin
-                        predecessorMap[neighborName] = current;
+                    float new_dist = dist + reseau.getPoids();
+                    if (new_dist < distances[neighbor.getName()]) {
+                        pq.erase({distances[neighbor.getName()], neighbor.getName()});
+                        distances[neighbor.getName()] = new_dist;
+                        previous[neighbor.getName()] = current_name;
+                        pq.insert({new_dist, neighbor.getName()});
                     }
                 }
             }
 
-            return distances;
+            // Reconstituer les chemins vers tous les points
+            std::unordered_map<std::string, std::vector<std::string>> paths;
+
+            for (auto& [target, _] : distances) {
+                if (target == name) continue;
+
+                std::vector<std::string> path;
+                std::string current = target;
+                while (previous.find(current) != previous.end()) {
+                    path.push_back(current);
+                    current = previous[current];
+                }
+                if (current == name) {
+                    path.push_back(name);
+                    std::reverse(path.begin(), path.end());
+                    paths[target] = path;
+                }
+            }
+
+            return paths;
         };
 
         static std::vector<uint8_t> routers_to_binary(const std::vector<std::pair<Router, std::vector<int>>>& data) { //serialize le router en tableau binaire

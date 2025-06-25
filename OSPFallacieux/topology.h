@@ -5,7 +5,11 @@
 #include <cstdint>
 #include <stdexcept>
 #include <algorithm>
-#include <arpa/inet.h> 
+#include <arpa/inet.h>
+#include <tuple>
+#include <unordered_map>
+#include <set>
+#include <limits>
 
 class Topology{
     private:
@@ -152,29 +156,19 @@ class Topology{
             routers_serialized = Router::routers_to_binary(routers); //on le serialise
         };
 
-        static std::string print_first_node(const std::string& targetNode, const std::map<std::string, std::string>& predecessorMap) {
-            std::vector<std::string> path;
-            std::string current = targetNode;
 
-            while (predecessorMap.find(current) != predecessorMap.end()) {
-                path.push_back(current);
-                current = predecessorMap.at(current);
+        static std::string find_last_router(std::string nameRouter, std::unordered_map<std::string, std::vector<std::string>>& predecessorMap){
+            if (predecessorMap.find(nameRouter) != predecessorMap.end()) {
+                std::vector<std::string> chemin = predecessorMap[nameRouter];
+                return chemin[chemin.size() - 2];
+            } else {
+                std::cout << "Router n'existe pas dans le chemin." << std::endl;
             }
-
-            return path.back();
+            return ""; 
         };
 
-        static std::string print_last_node(const std::string& targetNode, const std::map<std::string, std::string>& predecessorMap) {
-            try {
-                std::string current = predecessorMap.at(targetNode);
-                return current;
-            } catch (const std::out_of_range& e) {
-                throw std::logic_error("targetNode n'existe pas dans la topologie");
-            }
-        }
-
-        std::string get_commun_network(const std::string& targetNodeA, const std::map<std::string, std::string>& predecessorMap){
-            const std::string targetNodeB = print_last_node(targetNodeA, predecessorMap);
+        std::string get_commun_network(const std::string& targetNodeA, std::unordered_map<std::string, std::vector<std::string>>& predecessorMap){
+            const std::string targetNodeB = find_last_router(targetNodeA, predecessorMap);
             std::vector<Router> buffRouter;
             for(auto r : topology){
                 if(r.getName() == targetNodeA || r.getName() == targetNodeB)
@@ -192,17 +186,15 @@ class Topology{
             return "";
         }
 
-        std::string find_interface(const Router router, const std::map<std::string, std::string>& predecessorMap){
-            return topology[0].findInterface(print_first_node(router.getName(), predecessorMap));
-        };
-
-        Router find_router(const std::string routerName){
-            for(auto router: topology){
-                if(router.getName() == routerName)
-                    return router;
+        std::string find_first_interface(std::string nameRouter, std::unordered_map<std::string, std::vector<std::string>>& predecessorMap){
+            if (predecessorMap.find(nameRouter) != predecessorMap.end()) {
+                std::vector<std::string> chemin = predecessorMap[nameRouter];
+                return topology[0].findInterface(chemin[1]);
+            } else {
+                std::cout << "Clé non trouvée." << std::endl;
             }
-            throw std::logic_error("Condition inattendue dans getRouter()");
-        }
+            return ""; 
+        };
 
         int count_network_occurence(const std::string addr){
             int res = 0;
@@ -213,13 +205,12 @@ class Topology{
             return res;
         }
 
-        void setup_for_routing(const std::string routerName, const std::map<std::string, std::string>& predecessorMap, std::string& gateway, std::vector<std::string>& networks){
-            Router actualRouter = find_router(routerName);
-            
+        void setup_for_routing(Router actualRouter, std::unordered_map<std::string, std::vector<std::string>>& predecessorMap, std::string& gateway, std::vector<std::string>& networks){
             if(!actualRouter.isActive()) return;
             
-            gateway = find_interface(actualRouter, predecessorMap);
-            networks.push_back(get_commun_network(routerName, predecessorMap));
+            gateway = find_first_interface(actualRouter.getName(), predecessorMap);
+            
+            networks.push_back(get_commun_network(actualRouter.getName(), predecessorMap));
             
             for(auto r : actualRouter.getReseaux()){
                 if(count_network_occurence(r.getAddr()) == 1)
@@ -227,8 +218,8 @@ class Topology{
             }
         }
 
-        void dijkstra(std::map<std::string, std::string> &predecessorMap, std::map<std::string, float> &shortestPaths){
-            shortestPaths = topology[0].calculateShortestPaths(topology, predecessorMap);
+        std::unordered_map<std::string, std::vector<std::string>> dijkstra(){
+            return topology[0].dijkstra_all_paths(topology);
         };
 
 

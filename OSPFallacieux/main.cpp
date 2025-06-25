@@ -3,6 +3,7 @@
 #include <vector>
 #include <algorithm> 
 #include <cstring>
+#include <unordered_map>
 
 #include "reseau.h"
 #include "router.h"
@@ -59,27 +60,27 @@ void printDistances(const std::map<std::string, float>& distances) {
     }
 }
 
-void test7(){
+
+
+void test8(){
     Topology topo;
     topo.init_test();
-    cout << "topo avant : \n" << topo << endl;
-    auto topo_oui = topo.getTopology();
-    std::map<std::string, std::string> predecessorMap;
-    std::map<std::string, float> shortestPaths = topo_oui[0].calculateShortestPaths(topo_oui, predecessorMap);
-    //printDistances(shortestPaths);
-    //cout << topo.find_interface("R3", predecessorMap) << endl; 
-    //cout << topo.get_commun_network("R3", predecessorMap) << endl;
-    //cout << topo.count_network_occurence("1.1.1.1") << endl;
-    //adresse gw, vector<std::string>
 
-    std::vector<uint8_t> res, rout;
-    topo.normalize(rout, res);
-    topo.from_serialized(rout, res);
+    cout << topo << endl;
 
+    std::unordered_map<std::string, std::vector<std::string>> paths = topo.dijkstra();
     string gateway; 
     vector<std::string> networks;
-    topo.setup_for_routing("R2", predecessorMap, gateway, networks);
-
+    topo.setup_for_routing(topo.getTopology()[2], paths, gateway, networks);
+    cout << "==============================" << endl;
+    for (const auto& [target, path] : paths) {
+        for (const auto& node : path) {
+            std::cout << node;
+            if (&node != &path.back()) std::cout << " -> ";
+        }
+        std::cout << std::endl;
+    }
+    cout << "==============================" << endl;
     cout << "GW > " << gateway << endl;
     cout << " Reseau : " << endl;
     for(auto i : networks)
@@ -90,6 +91,6 @@ void test7(){
 
 
 int main(){
-    test5();
+    test8();
     return 0;
 }
